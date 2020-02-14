@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "outDir": "../public/js",
+    "target": "es2017",
+
+    "sourceMap": true,
+    "strict": true,
+
+    "noImplicitReturns": true,
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+    // "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "strictNullChecks": true,
+  },
+  "compileOnSave": true,
+  "include": [
+    "src"
+  ]
+}
