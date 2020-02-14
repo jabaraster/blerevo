@@ -1,33 +1,50 @@
 import * as Firebase from "firebase";
 
+const COLLECTION_ID = "field-boss-cycle-2";
+
 Firebase.initializeApp({
     projectId: process.env.FIREBASE_PROJECT_ID,
 });
 const firestore = Firebase.firestore();
-const dataRoot = firestore.collection("field-boss-cycle-2");
+const dataRoot = firestore.collection(COLLECTION_ID);
 
-async function addServer(server: string) {
+async function listCycles(server: string): Promise<any[]> {
+    const ret: any[] = [];
+    await firestore.collection(`${COLLECTION_ID}/${server}/cycles/`)
+    .orderBy("sortOrder", "asc")
+    .get()
+    .then(d => {
+        d.forEach(r => {
+            ret.push(r.data());
+        });
+    })
+    return ret;
+}
+
+async function initializeCycles(server: string) {
     await firestore.runTransaction(async _ => {
-        return await dataRoot.doc(server).set({})
+        await dataRoot.doc(server).set({})
         .catch((err) => {
             console.log(err);
         });
-    });
-    const cyclesCollection = firestore.collection(`field-boss-cycle-2/${server}/cycles/`);
-    const d = new Date();
-    await Promise.all(createMasterData().map(async (boss, idx) => {
-        console.log(boss.name);
-        await cyclesCollection.add(Object.assign({}, boss, {
-            sortOrder: idx * 10,
-            channel: 1,
-            lastDefeatedTime: d,
+        const cyclesCollection = firestore.collection(`field-boss-cycle-2/${server}/cycles/`);
+        const d = new Date();
+        await Promise.all(createMasterData().map(async (boss, idx) => {
+            console.log(boss.name);
+            await cyclesCollection.add(Object.assign({}, boss, {
+                sortOrder: idx * 10,
+                channel: 1,
+                lastDefeatedTime: d,
+            }));
         }));
-    }));
+    });
 }
 
 
 async function main() {
-    await addServer("ケヤキ");
+    //await initializeCycles("ケヤキ");
+    (await listCycles("ケヤキ"))
+        .forEach(console.log);
 }
 
 main();
