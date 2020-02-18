@@ -13,6 +13,7 @@ type alias Area =
 
 type alias FieldBossCycle =
     { name : String
+    , id : String
     , region : Region
     , area : Area
     , force : Bool
