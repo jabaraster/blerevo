@@ -11,7 +11,8 @@ import Random exposing (Generator)
 import Task
 import TestData
 import Time exposing (Posix, Zone)
-import Times
+import Time.Extra exposing (Interval(..))
+import Times exposing (ZonedTime)
 import Types exposing (..)
 import Url exposing (Url)
 
@@ -47,8 +48,9 @@ type Msg
     = LinkClicked Browser.UrlRequest
     | UrlChanged Url
     | GetZone Zone
-    | GetTime Posix
-    | GetRandomNumbers (List Int)
+    | GetNowFirst Posix
+    | GetNow Posix
+    | GetRandomTimes (List Posix)
     | ToggleRegionFilter Region
     | ToggleForceFilter String
 
@@ -61,27 +63,32 @@ init _ url key =
     in
     ( { key = key
       , page = parseUrl url
-      , cycles = cycles
       , zone = Time.utc
+      , now = Time.millisToPosix 0
       , regionFilter = Dict.fromList [ ( "大砂漠", False ), ( "水月平原", True ), ( "白青山脈", True ) ]
       , forceFilter = Dict.fromList [ ( "勢力ボス", False ), ( "非勢力ボス", True ) ]
-      , now = Time.millisToPosix 0
+      , cycles = cycles
       }
-    , Cmd.batch
-        [ Task.perform GetZone Time.here
-        , Random.generate GetRandomNumbers <| randomNumberGenerator <| List.length cycles
-        ]
+    , Task.perform GetZone Time.here
     )
 
 
-randomNumberGenerator : Int -> Generator (List Int)
-randomNumberGenerator len =
-    Random.list len (Random.int 0 (1000 * 50 * 50 * 24 * 365))
+randomTimesGenerator : ZonedTime -> Int -> Generator (List Posix)
+randomTimesGenerator now len =
+    let
+        min =
+            Time.Extra.add Minute -120 now.zone now.time
+
+        max =
+            Time.Extra.add Hour 0 now.zone now.time
+    in
+    Random.map (List.map Time.millisToPosix) <|
+        Random.list len (Random.int (Time.posixToMillis min) (Time.posixToMillis max))
 
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Sub.batch [ Time.every 1000 GetTime ]
+    Sub.batch [ Time.every 1000 GetNow ]
 
 
 parseUrl : Url -> Page
@@ -103,21 +110,31 @@ update msg model =
         UrlChanged url ->
             ( { model | page = parseUrl url }, Cmd.none )
 
-        GetTime time ->
-            ( { model | now = time }, Cmd.none )
-
         GetZone zone ->
-            ( { model | zone = zone }, Cmd.none )
+            ( { model | zone = zone }, Task.perform GetNowFirst Time.now )
 
-        GetRandomNumbers numbers ->
-            ( { model | cycles = shiftDefeatedTime numbers model.cycles }, Cmd.none )
+        GetNowFirst time ->
+            ( { model | now = time }
+            , Random.generate GetRandomTimes <|
+                randomTimesGenerator { zone = model.zone, time = time } <|
+                    List.length model.cycles
+            )
+
+        GetNow time ->
+            ( { model | now = time }
+            , Cmd.none
+            )
+
+        GetRandomTimes times ->
+            ( { model | cycles = setDefeatedTime times model.cycles }, Cmd.none )
 
         ToggleRegionFilter region ->
             ( { model
                 | regionFilter =
-                    Debug.log "" <| Dict.update region
-                        (\mv -> Maybe.map not mv |> Maybe.withDefault True |> Just)
-                        model.regionFilter
+                    Debug.log "" <|
+                        Dict.update region
+                            (\mv -> Maybe.map not mv |> Maybe.withDefault True |> Just)
+                            model.regionFilter
               }
             , Cmd.none
             )
@@ -125,23 +142,20 @@ update msg model =
         ToggleForceFilter f ->
             ( { model
                 | forceFilter =
-                    Debug.log "" <| Dict.update f
-                        (\mv -> Maybe.map not mv |> Maybe.withDefault True |> Just)
-                        model.forceFilter
+                    Debug.log "" <|
+                        Dict.update f
+                            (\mv -> Maybe.map not mv |> Maybe.withDefault True |> Just)
+                            model.forceFilter
               }
             , Cmd.none
             )
 
 
-shiftDefeatedTime : List Int -> List FieldBossCycle -> List FieldBossCycle
-shiftDefeatedTime numbers bossList =
+setDefeatedTime : List Posix -> List FieldBossCycle -> List FieldBossCycle
+setDefeatedTime numbers bossList =
     List.map
-        (\( n, boss ) ->
-            let
-                ldtMillis =
-                    Time.posixToMillis boss.lastDefeatedTime
-            in
-            { boss | lastDefeatedTime = Time.millisToPosix (n + ldtMillis) }
+        (\( t, boss ) ->
+            { boss | lastDefeatedTime = t }
         )
     <|
         List.Extra.zip numbers bossList
@@ -191,7 +205,8 @@ view model =
                     in
                     Time.posixToMillis nextTime.time
                 )
-                <| getFilteredCycles model
+            <|
+                getFilteredCycles model
     in
     { title = "Field boss cycle | Blade and Soul Revolution"
     , body =
@@ -255,6 +270,9 @@ viewBossTimeline zone now boss =
 
         npt =
             Times.omitSecond { zone = zone, time = nextPopTime.time }
+
+        repop =
+            Types.nextPopTime boss now
     in
     li []
         [ h2 []
@@ -262,8 +280,9 @@ viewBossTimeline zone now boss =
             , fbIcon boss.id
             , span [ style "color" (colorForRegion boss.region) ] [ text boss.name ]
             ]
-        , h3 [] [ text ldt ]
-        , h3 [] [ text npt ]
+        , h3 [] [ text <| "最後の討伐時刻: " ++ ldt ]
+        , h3 [] [ text <| "次のリポップ時刻: " ++ npt ]
+        , h3 [] [ text <| "リポップまで: " ++ String.fromInt repop.remainMinutes ++ "分" ]
         ]
 
 

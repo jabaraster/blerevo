@@ -51,6 +51,7 @@ main();
 
 interface FieldBossMeta {
     name: string,
+    id: string,
     region: string,
     area: string,
     force: boolean,
@@ -61,6 +62,7 @@ function createMasterData(): FieldBossMeta[] {
     return [
         {
             name: "金剛力士",
+            id: "kongou_rikishi",
             region: "大砂漠",
             area: "トムンジン",
             force: false,
@@ -68,6 +70,7 @@ function createMasterData(): FieldBossMeta[] {
         },
         {
             name: "鬼炎ハサミ虫",
+            id: "kien_hasami_mushi",
             region: "大砂漠",
             area: "炎天の大地",
             force: false,
@@ -75,6 +78,7 @@ function createMasterData(): FieldBossMeta[] {
         },
         {
             name: "黒唱族族長",
+            id: "kokusyouzoku_zokuchou",
             region: "大砂漠",
             area: "ザジ岩峰",
             force: false,
@@ -82,13 +86,15 @@ function createMasterData(): FieldBossMeta[] {
         },
         {
             name: "ヤゴルタ",
+            id: "yagoruta",
             region: "大砂漠",
             area: "五色岩都",
-            force: false,
+            force: true,
             repopIntervalMinutes: 60,
         },
         {
             name: "黒獣神",
+            id: "kokujuushin",
             region: "水月平原",
             area: "狼の丘陵",
             force: false,
@@ -96,6 +102,7 @@ function createMasterData(): FieldBossMeta[] {
         },
         {
             name: "ボルコロッソ族野蛮戦士",
+            id: "borukorosso",
             region: "水月平原",
             area: "養豚場",
             force: false,
@@ -103,6 +110,7 @@ function createMasterData(): FieldBossMeta[] {
         },
         {
             name: "ゴルラク軍訓練教官",
+            id: "goruraku",
             region: "水月平原",
             area: "半月湖",
             force: false,
@@ -110,6 +118,7 @@ function createMasterData(): FieldBossMeta[] {
         },
         {
             name: "鬼蛮",
+            id: "kiban",
             region: "水月平原",
             area: "霧霞の森",
             force: false,
@@ -117,6 +126,7 @@ function createMasterData(): FieldBossMeta[] {
         },
         {
             name: "陰玄儡",
+            id: "ingenrai",
             region: "水月平原",
             area: "悪鬼都市",
             force: true,
@@ -124,6 +134,7 @@ function createMasterData(): FieldBossMeta[] {
         },
         {
             name: "捕食者ブタン",
+            id: "butan",
             region: "白青山脈",
             area: "風の平野",
             force: false,
@@ -131,6 +142,7 @@ function createMasterData(): FieldBossMeta[] {
         },
         {
             name: "鋭いキバ",
+            id: "surudoi_kiba",
             region: "白青山脈",
             area: "赤い朝焼けの盆地",
             force: false,
@@ -138,6 +150,7 @@ function createMasterData(): FieldBossMeta[] {
         },
         {
             name: "戦斧族頭目チャチャ",
+            id: "chacha",
             region: "白青山脈",
             area: "白樺の森",
             force: false,
@@ -145,6 +158,7 @@ function createMasterData(): FieldBossMeta[] {
         },
         {
             name: "シンブウ",
+            id: "sinbuu",
             region: "白青山脈",
             area: "ハンターの安息地",
             force: false,
@@ -152,6 +166,7 @@ function createMasterData(): FieldBossMeta[] {
         },
         {
             name: "木こり副族長ウタ",
+            id: "uta",
             region: "白青山脈",
             area: "北方雪原",
             force: false,
@@ -159,6 +174,7 @@ function createMasterData(): FieldBossMeta[] {
         },
         {
             name: "兎仮面族フィク・コウ",
+            id: "fiku_kou",
             region: "白青山脈",
             area: "岩の丘陵",
             force: true,

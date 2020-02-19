@@ -44,5 +44,5 @@ nextPopTimePlain last intervalMinutes now =
             nextMillis - Time.posixToMillis now
     in
     { time = Time.millisToPosix nextMillis
-    , remainMinutes = round <| toFloat remainMillis / 60
+    , remainMinutes = round <| toFloat remainMillis / 1000 / 60
     }
