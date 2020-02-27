@@ -26,13 +26,13 @@ type alias ZonedTime =
 omitSecond : ZonedTime -> String
 omitSecond time =
     DateFormat.format
-        [ yearNumber
-        , text "/"
-        , monthFixed
-        , text "/"
-        , dayOfMonthFixed
-        , text " "
-        , hourMilitaryFixed
+        [ --   yearNumber
+          -- , text "/"
+          -- , monthFixed
+          -- , text "/"
+          -- , dayOfMonthFixed
+          -- , text " "
+          hourMilitaryFixed
         , text ":"
         , minuteFixed
         ]

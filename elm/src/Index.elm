@@ -210,31 +210,33 @@ view model =
     in
     { title = "Field boss cycle | Blade and Soul Revolution"
     , body =
-        [ h1 [] [ text "Blade and Soul Revolution" ]
+        [ h5 [] [ text "Blade and Soul Revolution" ]
+        , h1 [] [ text "Field boss cycle diagram" ]
+        , p [] [ text "現在、ケヤキサーバの1chにしか対応していません。ご注意を。" ]
         , div [ class "filter-container" ]
-            [ h4 [ class "filter-header" ] [ text "地方" ]
-            , ul [ class "filter region" ]
+            [ ul [ class "filter region" ]
                 [ li [] [ filterText "大砂漠" model.regionFilter ToggleRegionFilter ]
                 , li [] [ filterText "水月平原" model.regionFilter ToggleRegionFilter ]
                 , li [] [ filterText "白青山脈" model.regionFilter ToggleRegionFilter ]
                 ]
             ]
         , div [ class "filter-container" ]
-            [ h4 [ class "filter-header" ] [ text "勢力" ]
-            , ul [ class "filter region" ]
+            [ ul [ class "filter region" ]
                 [ li [] [ filterText "勢力ボス" model.forceFilter ToggleForceFilter ]
                 , li [] [ filterText "非勢力ボス" model.forceFilter ToggleForceFilter ]
                 ]
             ]
-        , div []
-            [ div [ class "circles-container" ]
-                [ circle "1h"
-                , circle "2h"
-                , circle "3h"
-                , fbIcon "kongou_rikishi"
+        , table [ class "main-contents" ]
+            [ thead []
+                [ tr []
+                    [ td [] []
+                    , td [ class "label-now" ] [ text <| "現在時刻: " ++ Times.omitSecond { zone = model.zone, time = model.now } ]
+                    , td [] []
+                    ]
                 ]
+            , tbody [] <| List.map (viewBossTimeline model.zone model.now) ordered
             ]
-        , ol [ style "color" "#333333" ] <| List.map (viewBossTimeline model.zone model.now) ordered
+        , h5 [] [ text "Powered by Haskell at ケヤキ server" ]
         ]
     }
 
@@ -248,10 +250,7 @@ filterText key dict action =
         c =
             Maybe.withDefault True <| Dict.get key dict
     in
-    label []
-        [ input [ type_ "checkbox", checked c, onClick <| action key ] []
-        , text key
-        ]
+    checkbox key c <| action key
 
 
 circle : String -> Html msg
@@ -274,22 +273,83 @@ viewBossTimeline zone now boss =
         repop =
             Types.nextPopTime boss now
     in
-    li []
-        [ h2 []
-            [ forceLabel boss
-            , fbIcon boss.id
-            , span [ style "color" (colorForRegion boss.region) ] [ text boss.name ]
+    tr []
+        [ td [ class "boss-info" ]
+            [ ul []
+                [ li [] [ span [ class "label-boss-name", style "color" (colorForRegion boss.region) ] [ text boss.name ] ]
+                , li [] [ fbIcon boss ]
+                , li [ class "label-repop-time" ] [ text <| "再登場時間: " ++ String.fromInt boss.repopIntervalMinutes ++ "分" ]
+                ]
             ]
-        , h3 [] [ text <| "最後の討伐時刻: " ++ ldt ]
-        , h3 [] [ text <| "次のリポップ時刻: " ++ npt ]
-        , h3 [] [ text <| "リポップまで: " ++ String.fromInt repop.remainMinutes ++ "分" ]
+        , td [ class "repop-info" ]
+            [ ul
+                []
+                [ li [ class "label-region-and-area" ] [ text boss.region ]
+                , li [ class "label-region-and-area" ] [ text boss.area ]
+                , li []
+                    [ span [] [ text <| "討伐時刻: " ++ ldt ]
+                    , span [ class "fas fa-edit" ] []
+                    ]
+                , li [] [ text <| "登場時刻: " ++ npt ]
+                ]
+            ]
+        , td [ class "time" ]
+            [ span [ class "time-bar", class <| timeBarColorClass repop.remainSeconds, style "width" <| timeBarWidth repop now ]
+                [ text <| "登場まで" ++ remainTimeText repop.remainSeconds
+                ]
+            ]
         ]
 
 
-fbIcon : String -> Html msg
-fbIcon bossId =
-    span [ class "fb-icon-container" ]
-        [ span [ class <| "fb-icon-" ++ bossId ] []
+timeBarColorClass : Int -> String
+timeBarColorClass remainSeconds =
+    if remainSeconds < 180 then
+        "time-bar-color-short"
+
+    else if remainSeconds < 60 * 60 then
+        "time-bar-color-middle"
+
+    else
+        "time-bar-color-long"
+
+
+remainTimeText : Int -> String
+remainTimeText remainSeconds =
+    if remainSeconds < 180 then
+        String.fromInt remainSeconds ++ "秒"
+
+    else if remainSeconds < 60 * 60 then
+        String.fromInt (remainSeconds // 60) ++ "分"
+
+    else
+        "1時間以上"
+
+
+timeBarWidth : PopTime -> Posix -> String
+timeBarWidth popTime now =
+    let
+        oneHourSeconds =
+            60 * 60
+    in
+    if popTime.remainSeconds > oneHourSeconds then
+        "100%"
+
+    else
+        String.fromFloat (toFloat (popTime.remainSeconds * 100) / toFloat oneHourSeconds) ++ "%"
+
+
+fbIcon : FieldBossCycle -> Html msg
+fbIcon boss =
+    let
+        forceClass =
+            if boss.force then
+                "force-boss"
+
+            else
+                "unforce-boss"
+    in
+    span [ class "container-fb-icon", class forceClass ]
+        [ span [ class <| "fb-icon-" ++ boss.id ] []
         ]
 
 
@@ -310,7 +370,7 @@ colorForRegion : Region -> String
 colorForRegion r =
     case r of
         "大砂漠" ->
-            "#deb887"
+            "#cea877"
 
         "水月平原" ->
             "#000080"
@@ -320,3 +380,11 @@ colorForRegion r =
 
         _ ->
             "#000000"
+
+
+checkbox : String -> Bool -> msg -> Html msg
+checkbox labelText checked_ handler =
+    label [ class "checkbox", onClick handler ]
+        [ span [ classList [ ( "fas fa-check", True ), ( "checked", checked_ ), ( "unchecked", not checked_ ) ] ] []
+        , span [] [ text labelText ]
+        ]

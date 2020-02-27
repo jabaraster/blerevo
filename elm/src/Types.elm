@@ -25,7 +25,7 @@ type alias FieldBossCycle =
 
 type alias PopTime =
     { time : Posix
-    , remainMinutes : Int
+    , remainSeconds : Int
     }
 
 
@@ -37,12 +37,31 @@ nextPopTime boss now =
 nextPopTimePlain : Posix -> Int -> Posix -> PopTime
 nextPopTimePlain last intervalMinutes now =
     let
-        nextMillis =
-            (1000 * 60 * intervalMinutes) + Time.posixToMillis last
+        nowMillis =
+            Time.posixToMillis now
+
+        next =
+            nextPopTimeOnly last intervalMinutes now
 
         remainMillis =
-            nextMillis - Time.posixToMillis now
+            Time.posixToMillis next - Time.posixToMillis now
     in
-    { time = Time.millisToPosix nextMillis
-    , remainMinutes = round <| toFloat remainMillis / 1000 / 60
+    { time = next
+    , remainSeconds = round <| toFloat remainMillis / 1000
     }
+
+
+nextPopTimeOnly : Posix -> Int -> Posix -> Posix
+nextPopTimeOnly last intervalMinutes now =
+    let
+        nowMillis =
+            Time.posixToMillis now
+
+        nextMillis =
+            (1000 * 60 * intervalMinutes) + Time.posixToMillis last
+    in
+    if nextMillis > nowMillis then
+        Time.millisToPosix nextMillis
+
+    else
+        nextPopTimeOnly (Time.millisToPosix nextMillis) intervalMinutes now
