@@ -37,6 +37,7 @@ async function listCycles(server: string): Promise<FieldBossCycle[]> {
 
 async function main() {
     (await listCycles("ケヤキ")).forEach((boss) => {
-        console.log(boss.lastDefeatedTime.seconds);
+        console.log(boss);
     });
 }
+main();
