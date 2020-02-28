@@ -131,10 +131,9 @@ update msg model =
         ToggleRegionFilter region ->
             ( { model
                 | regionFilter =
-                    Debug.log "" <|
-                        Dict.update region
-                            (\mv -> Maybe.map not mv |> Maybe.withDefault True |> Just)
-                            model.regionFilter
+                    Dict.update region
+                        (\mv -> Maybe.map not mv |> Maybe.withDefault True |> Just)
+                        model.regionFilter
               }
             , Cmd.none
             )
@@ -142,10 +141,9 @@ update msg model =
         ToggleForceFilter f ->
             ( { model
                 | forceFilter =
-                    Debug.log "" <|
-                        Dict.update f
-                            (\mv -> Maybe.map not mv |> Maybe.withDefault True |> Just)
-                            model.forceFilter
+                    Dict.update f
+                        (\mv -> Maybe.map not mv |> Maybe.withDefault True |> Just)
+                        model.forceFilter
               }
             , Cmd.none
             )
@@ -207,6 +205,9 @@ view model =
                 )
             <|
                 getFilteredCycles model
+
+        nowWithZone =
+            { zone = model.zone, time = model.now }
     in
     { title = "Field boss cycle | Blade and Soul Revolution"
     , body =
@@ -230,8 +231,8 @@ view model =
             [ thead []
                 [ tr []
                     [ td [] []
-                    , td [ class "label-now" ] [ text <| "現在時刻: " ++ Times.omitSecond { zone = model.zone, time = model.now } ]
-                    , td [] []
+                    , td [ class "label-now" ] [ text <| "現在時刻: " ++ Times.omitSecond nowWithZone ]
+                    , td [ class "label-now" ] [ text <| Times.omitSecond <| Times.addHour 1 nowWithZone ]
                     ]
                 ]
             , tbody [] <| List.map (viewBossTimeline model.zone model.now) ordered

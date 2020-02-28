@@ -1,14 +1,11 @@
-module Times exposing (ZonedTime, omitSecond)
+module Times exposing (..)
 
 -- import Date exposing (Date)
 -- import Iso8601
 
 import DateFormat exposing (..)
 import Time exposing (Posix, Zone)
-
-
-
--- import Time.Extra as TE
+import Time.Extra exposing (Interval(..))
 
 
 type alias ZonedTime =
@@ -21,6 +18,13 @@ type alias ZonedTime =
 -- parseDatetime : String -> Posix
 -- parseDatetime s =
 --     Result.withDefault (Time.millisToPosix 0) <| Iso8601.toTime s
+
+
+addHour : Int -> ZonedTime -> ZonedTime
+addHour hour zonedTime =
+    { zone = zonedTime.zone
+    , time = Time.Extra.add Hour hour zonedTime.zone zonedTime.time
+    }
 
 
 omitSecond : ZonedTime -> String
