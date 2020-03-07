@@ -8,6 +8,7 @@ testData : List FieldBossCycle
 testData =
     [ { name = "金剛力士"
       , id = "kongou_rikishi"
+      , serverId = "kongou_rikishi"
       , region = "大砂漠"
       , area = "トムンジン"
       , force = False
@@ -17,6 +18,7 @@ testData =
       }
     , { name = "鬼炎ハサミ虫"
       , id = "kien_hasami_mushi"
+      , serverId = "kien_hasami_mushi"
       , region = "大砂漠"
       , area = "炎天の大地"
       , force = False
@@ -26,6 +28,7 @@ testData =
       }
     , { name = "黒唱族族長"
       , id = "kokusyouzoku_zokuchou"
+      , serverId = "kokusyouzoku_zokuchou"
       , region = "大砂漠"
       , area = "ザジ岩峰"
       , force = False
@@ -35,6 +38,7 @@ testData =
       }
     , { name = "ヤゴルタ"
       , id = "yagoruta"
+      , serverId = "yagoruta"
       , region = "大砂漠"
       , area = "五色岩都"
       , force = True
@@ -44,6 +48,7 @@ testData =
       }
     , { name = "黒獣神"
       , id = "kokujuushin"
+      , serverId = "kokujuushin"
       , area = "狼の丘陵"
       , region = "水月平原"
       , force = False
@@ -53,6 +58,7 @@ testData =
       }
     , { name = "ポルコロッソ野蛮戦士"
       , id = "porukorosso"
+      , serverId = "porukorosso"
       , area = "養豚場"
       , region = "水月平原"
       , force = False
@@ -62,6 +68,7 @@ testData =
       }
     , { name = "ゴルラク軍訓練教官"
       , id = "goruraku"
+      , serverId = "goruraku"
       , area = "半月湖"
       , region = "水月平原"
       , force = False
@@ -71,6 +78,7 @@ testData =
       }
     , { name = "鬼蛮"
       , id = "kiban"
+      , serverId = "kiban"
       , area = "霧霞の森"
       , region = "水月平原"
       , force = False
@@ -80,6 +88,7 @@ testData =
       }
     , { name = "陰玄儡"
       , id = "ingenrai"
+      , serverId = "ingenrai"
       , area = "悪鬼都市"
       , region = "水月平原"
       , force = True
@@ -89,6 +98,7 @@ testData =
       }
     , { name = "捕食者ブタン"
       , id = "butan"
+      , serverId = "butan"
       , region = "白青山脈"
       , area = "風の平野"
       , force = False
@@ -98,6 +108,7 @@ testData =
       }
     , { name = "鋭いキバ"
       , id = "surudoi_kiba"
+      , serverId = "surudoi_kiba"
       , region = "白青山脈"
       , area = "赤い朝焼けの盆地"
       , force = False
@@ -107,6 +118,7 @@ testData =
       }
     , { name = "戦斧族頭目チャチャ"
       , id = "chacha"
+      , serverId = "chacha"
       , region = "白青山脈"
       , area = "白樺の森"
       , force = False
@@ -116,6 +128,7 @@ testData =
       }
     , { name = "シンブウ"
       , id = "sinbuu"
+      , serverId = "sinbuu"
       , region = "白青山脈"
       , area = "ハンターの安息地"
       , force = False
@@ -125,6 +138,7 @@ testData =
       }
     , { name = "木こり副族長ウタ"
       , id = "uta"
+      , serverId = "uta"
       , region = "白青山脈"
       , area = "北方雪原"
       , force = False
@@ -134,6 +148,7 @@ testData =
       }
     , { name = "兎仮面族フィク・コウ"
       , id = "fiku_kou"
+      , serverId = "fiku_kou"
       , region = "白青山脈"
       , area = "岩の丘陵"
       , force = True

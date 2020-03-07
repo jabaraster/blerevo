@@ -8,6 +8,8 @@ interface Timestamp {
 
 interface FieldBossCycle {
     name: string;
+    id: String;
+    serverId: String;
     region: string;
     area: string;
     channel: number;
@@ -20,16 +22,17 @@ Firebase.initializeApp({
     projectId: "blade-and-soul-field-bos-c21bf",
 });
 const firestore = Firebase.firestore();
-const dataRoot = firestore.collection(COLLECTION_ID);
 
 export async function listCycles(server: string): Promise<FieldBossCycle[]> {
-    const ret: any[] = [];
+    const ret: FieldBossCycle[] = [];
     await firestore.collection(`${COLLECTION_ID}/${server}/cycles/`)
     .orderBy("sortOrder", "asc")
     .get()
     .then(d => {
         d.forEach(r => {
-            ret.push(r.data());
+            const d: any = r.data();
+            d.serverId = r.id;
+            ret.push(d);
         });
     })
     return ret;

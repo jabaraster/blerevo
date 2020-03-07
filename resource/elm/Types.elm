@@ -1,6 +1,7 @@
 module Types exposing (Area, FieldBossCycle, PopTime, Region, Timestamp, fieldBossCycleDecoder, nextPopTime, nextPopTimeOnly, nextPopTimePlain, timestampDecoder, timestampToPosix)
 
 import Json.Decode as D exposing (Decoder)
+import Json.Decode.Pipeline as DP
 import Time exposing (Posix)
 
 
@@ -26,6 +27,7 @@ timestampDecoder =
 type alias FieldBossCycle =
     { name : String
     , id : String
+    , serverId : String
     , region : Region
     , area : Area
     , force : Bool
@@ -37,15 +39,16 @@ type alias FieldBossCycle =
 
 fieldBossCycleDecoder : Decoder FieldBossCycle
 fieldBossCycleDecoder =
-    D.map8 FieldBossCycle
-        (D.field "name" D.string)
-        (D.field "id" D.string)
-        (D.field "region" D.string)
-        (D.field "area" D.string)
-        (D.field "force" D.bool)
-        (D.field "repopIntervalMinutes" D.int)
-        (D.field "lastDefeatedTime" timestampDecoder |> D.andThen (D.succeed << timestampToPosix))
-        (D.field "sortOrder" D.int)
+    D.succeed FieldBossCycle
+        |> DP.required "name" D.string
+        |> DP.required "id" D.string
+        |> DP.required "serverId" D.string
+        |> DP.required "region" D.string
+        |> DP.required "area" D.string
+        |> DP.required "force" D.bool
+        |> DP.required "repopIntervalMinutes" D.int
+        |> DP.required "lastDefeatedTime" (timestampDecoder |> D.andThen (D.succeed << timestampToPosix))
+        |> DP.required "sortOrder" D.int
 
 
 timestampToPosix : Timestamp -> Posix
