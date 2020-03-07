@@ -29,9 +29,9 @@ type alias FieldBossCycle =
     , region : Region
     , area : Area
     , force : Bool
-    , sortOrder : Int
     , repopIntervalMinutes : Int
     , lastDefeatedTime : Posix
+    , sortOrder : Int
     }
 
 
@@ -43,9 +43,9 @@ fieldBossCycleDecoder =
         (D.field "region" D.string)
         (D.field "area" D.string)
         (D.field "force" D.bool)
-        (D.field "sortOrder" D.int)
         (D.field "repopIntervalMinutes" D.int)
         (D.field "lastDefeatedTime" timestampDecoder |> D.andThen (D.succeed << timestampToPosix))
+        (D.field "sortOrder" D.int)
 
 
 timestampToPosix : Timestamp -> Posix
