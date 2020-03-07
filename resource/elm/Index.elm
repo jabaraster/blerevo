@@ -1,4 +1,4 @@
-module Index exposing (..)
+module Index exposing (Model, Msg(..), Page(..), checkbox, circle, colorForRegion, fbIcon, filterText, forceLabel, forceText, getFilteredCycles, init, main, parseUrl, randomTimesGenerator, remainTimeText, setDefeatedTime, subscriptions, timeBarColorClass, timeBarWidth, update, view, viewBossTimeline)
 
 import Browser exposing (Document, UrlRequest)
 import Browser.Navigation as Nav exposing (Key)
@@ -6,7 +6,10 @@ import Dict exposing (Dict)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
+import Json.Decode
+import Json.Encode exposing (Value)
 import List.Extra
+import Ports
 import Random exposing (Generator)
 import Task
 import TestData
@@ -40,7 +43,8 @@ type alias Model =
     , now : Posix
     , regionFilter : Dict Region Bool
     , forceFilter : Dict String Bool
-    , cycles : List FieldBossCycle
+    , cycles : Result Json.Decode.Error (List FieldBossCycle)
+    , error : Maybe Json.Decode.Error
     }
 
 
@@ -53,23 +57,24 @@ type Msg
     | GetRandomTimes (List Posix)
     | ToggleRegionFilter Region
     | ToggleForceFilter String
+    | ReceiveCycles Value
 
 
 init : () -> Url -> Key -> ( Model, Cmd Msg )
 init _ url key =
-    let
-        cycles =
-            TestData.testData
-    in
     ( { key = key
       , page = parseUrl url
       , zone = Time.utc
       , now = Time.millisToPosix 0
       , regionFilter = Dict.fromList [ ( "大砂漠", False ), ( "水月平原", True ), ( "白青山脈", True ) ]
       , forceFilter = Dict.fromList [ ( "勢力ボス", False ), ( "非勢力ボス", True ) ]
-      , cycles = cycles
+      , cycles = Ok []
+      , error = Nothing
       }
-    , Task.perform GetZone Time.here
+    , Cmd.batch
+        [ Task.perform GetZone Time.here
+        , Ports.requestLoadCycles "ケヤキ"
+        ]
     )
 
 
@@ -88,7 +93,10 @@ randomTimesGenerator now len =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Sub.batch [ Time.every 1000 GetNow ]
+    Sub.batch
+        [ Time.every 1000 GetNow
+        , Ports.receiveCycles ReceiveCycles
+        ]
 
 
 parseUrl : Url -> Page
@@ -117,7 +125,8 @@ update msg model =
             ( { model | now = time }
             , Random.generate GetRandomTimes <|
                 randomTimesGenerator { zone = model.zone, time = time } <|
-                    List.length model.cycles
+                    List.length <|
+                        Result.withDefault [] model.cycles
             )
 
         GetNow time ->
@@ -126,7 +135,7 @@ update msg model =
             )
 
         GetRandomTimes times ->
-            ( { model | cycles = setDefeatedTime times model.cycles }, Cmd.none )
+            ( { model | cycles = Result.map (setDefeatedTime times) model.cycles }, Cmd.none )
 
         ToggleRegionFilter region ->
             ( { model
@@ -147,6 +156,9 @@ update msg model =
               }
             , Cmd.none
             )
+
+        ReceiveCycles v ->
+            ( { model | cycles = Json.Decode.decodeValue (Json.Decode.list Types.fieldBossCycleDecoder) v }, Cmd.none )
 
 
 setDefeatedTime : List Posix -> List FieldBossCycle -> List FieldBossCycle
@@ -179,7 +191,8 @@ getFilteredCycles model =
                 _ ->
                     False
         )
-        model.cycles
+    <|
+        Result.withDefault [] model.cycles
 
 
 forceText : Bool -> String
@@ -238,6 +251,7 @@ view model =
             , tbody [] <| List.map (viewBossTimeline model.zone model.now) ordered
             ]
         , h5 [] [ text "Powered by Haskell at ケヤキ server" ]
+        , p [] [ text <| Maybe.withDefault "" <| Maybe.map Json.Decode.errorToString model.error ]
         ]
     }
 

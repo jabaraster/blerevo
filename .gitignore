@@ -66,3 +66,6 @@ node_modules/
 elm/elm-stuff/
 elm/.cache/
 elm/dist/
+resource/.cache/
+resource/dist/
+resource/elm-stuff/

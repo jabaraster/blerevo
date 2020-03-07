@@ -22,7 +22,7 @@ Firebase.initializeApp({
 const firestore = Firebase.firestore();
 const dataRoot = firestore.collection(COLLECTION_ID);
 
-async function listCycles(server: string): Promise<FieldBossCycle[]> {
+export async function listCycles(server: string): Promise<FieldBossCycle[]> {
     const ret: any[] = [];
     await firestore.collection(`${COLLECTION_ID}/${server}/cycles/`)
     .orderBy("sortOrder", "asc")
@@ -34,10 +34,3 @@ async function listCycles(server: string): Promise<FieldBossCycle[]> {
     })
     return ret;
 }
-
-async function main() {
-    (await listCycles("ケヤキ")).forEach((boss) => {
-        console.log(boss);
-    });
-}
-main();

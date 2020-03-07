@@ -1,5 +1,6 @@
-module Types exposing (..)
+module Types exposing (Area, FieldBossCycle, PopTime, Region, Timestamp, fieldBossCycleDecoder, nextPopTime, nextPopTimeOnly, nextPopTimePlain, timestampDecoder, timestampToPosix)
 
+import Json.Decode as D exposing (Decoder)
 import Time exposing (Posix)
 
 
@@ -9,6 +10,17 @@ type alias Region =
 
 type alias Area =
     String
+
+
+type alias Timestamp =
+    { seconds : Int, nanoseconds : Int }
+
+
+timestampDecoder : Decoder Timestamp
+timestampDecoder =
+    D.map2 Timestamp
+        (D.field "seconds" D.int)
+        (D.field "nanoseconds" D.int)
 
 
 type alias FieldBossCycle =
@@ -21,6 +33,24 @@ type alias FieldBossCycle =
     , repopIntervalMinutes : Int
     , lastDefeatedTime : Posix
     }
+
+
+fieldBossCycleDecoder : Decoder FieldBossCycle
+fieldBossCycleDecoder =
+    D.map8 FieldBossCycle
+        (D.field "name" D.string)
+        (D.field "id" D.string)
+        (D.field "region" D.string)
+        (D.field "area" D.string)
+        (D.field "force" D.bool)
+        (D.field "sortOrder" D.int)
+        (D.field "repopIntervalMinutes" D.int)
+        (D.field "lastDefeatedTime" timestampDecoder |> D.andThen (D.succeed << timestampToPosix))
+
+
+timestampToPosix : Timestamp -> Posix
+timestampToPosix t =
+    Time.millisToPosix 0
 
 
 type alias PopTime =

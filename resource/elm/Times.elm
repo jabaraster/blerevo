@@ -1,4 +1,4 @@
-module Times exposing (..)
+module Times exposing (ZonedTime, addHour, omitSecond)
 
 -- import Date exposing (Date)
 -- import Iso8601

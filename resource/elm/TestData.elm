@@ -1,4 +1,4 @@
-module TestData exposing (..)
+module TestData exposing (testData)
 
 import Time
 import Types exposing (FieldBossCycle)
@@ -52,8 +52,8 @@ testData =
           , repopIntervalMinutes = 120
           , lastDefeatedTime = Time.millisToPosix 0
           }
-        , { name = "ボルコロッソ野蛮戦士"
-          , id = "borukorosso"
+        , { name = "ポルコロッソ野蛮戦士"
+          , id = "porukorosso"
           , area = "養豚場"
           , region = "水月平原"
           , force = False
