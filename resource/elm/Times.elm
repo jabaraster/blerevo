@@ -1,4 +1,4 @@
-module Times exposing (ZonedTime, addHour, omitSecond)
+module Times exposing (ZonedTime, addHour, fullFormat, omitSecond)
 
 -- import Date exposing (Date)
 -- import Iso8601
@@ -32,11 +32,28 @@ omitSecond time =
     DateFormat.format
         [ --   yearNumber
           -- , text "/"
-          -- , monthFixed
-          -- , text "/"
-          -- , dayOfMonthFixed
-          -- , text " "
-          hourMilitaryFixed
+          monthFixed
+        , text "/"
+        , dayOfMonthFixed
+        , text " "
+        , hourMilitaryFixed
+        , text ":"
+        , minuteFixed
+        ]
+        time.zone
+        time.time
+
+
+fullFormat : ZonedTime -> String
+fullFormat time =
+    DateFormat.format
+        [ yearNumber
+        , text "/"
+        , monthFixed
+        , text "/"
+        , dayOfMonthFixed
+        , text " "
+        , hourMilitaryFixed
         , text ":"
         , minuteFixed
         ]

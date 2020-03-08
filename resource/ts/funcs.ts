@@ -4,6 +4,7 @@ const COLLECTION_ID = "field-boss-cycle-2";
 
 interface Timestamp {
     seconds: number;
+    nanoseconds: number;
 }
 
 interface FieldBossCycle {
@@ -22,6 +23,13 @@ Firebase.initializeApp({
     projectId: "blade-and-soul-field-bos-c21bf",
 });
 const firestore = Firebase.firestore();
+
+export async function updateDefeatedTime(server: string, bossIdAtServer: string, time: Timestamp): Promise<void> {
+    const doc = await firestore.doc(`${COLLECTION_ID}/${server}/cycles/${bossIdAtServer}`)
+    await doc.update({
+        lastDefeatedTime: time,
+    })
+}
 
 export async function listCycles(server: string): Promise<FieldBossCycle[]> {
     const ret: FieldBossCycle[] = [];

@@ -53,7 +53,20 @@ fieldBossCycleDecoder =
 
 timestampToPosix : Timestamp -> Posix
 timestampToPosix t =
-    Time.millisToPosix 0
+    let
+        millis =
+            t.seconds * 1000 + round (toFloat t.nanoseconds / 1000)
+    in
+    Time.millisToPosix millis
+
+
+posixToTimestamp : Posix -> Timestamp
+posixToTimestamp p =
+    let
+        millis =
+            Time.posixToMillis p
+    in
+    { seconds = round (toFloat millis / 1000), nanoseconds = 0 } -- ナノ秒の精度は不要.
 
 
 type alias PopTime =
