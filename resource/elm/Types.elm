@@ -1,4 +1,4 @@
-module Types exposing (Area, FieldBossCycle, PopTime, Region, Timestamp, fieldBossCycleDecoder, nextPopTime, nextPopTimeOnly, nextPopTimePlain, timestampDecoder, timestampToPosix)
+module Types exposing (Area, FieldBossCycle, PopTime, Region, Timestamp, fieldBossCycleDecoder, nextPopTime, nextPopTimeOnly, nextPopTimePlain, posixToTimestamp, timestampDecoder, timestampToPosix)
 
 import Json.Decode as D exposing (Decoder)
 import Json.Decode.Pipeline as DP
@@ -66,7 +66,11 @@ posixToTimestamp p =
         millis =
             Time.posixToMillis p
     in
-    { seconds = round (toFloat millis / 1000), nanoseconds = 0 } -- ナノ秒の精度は不要.
+    { seconds = round (toFloat millis / 1000), nanoseconds = 0 }
+
+
+
+-- ナノ秒の精度は不要.
 
 
 type alias PopTime =

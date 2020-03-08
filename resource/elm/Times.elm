@@ -26,6 +26,17 @@ addHour hour zonedTime =
     , time = Time.Extra.add Hour hour zonedTime.zone zonedTime.time
     }
 
+minuteSecond : ZonedTime -> String
+minuteSecond time =
+    DateFormat.format
+        [ 
+          hourMilitaryFixed
+        , text ":"
+        , minuteFixed
+        ]
+        time.zone
+        time.time
+
 
 omitSecond : ZonedTime -> String
 omitSecond time =

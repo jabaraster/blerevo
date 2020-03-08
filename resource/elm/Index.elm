@@ -20,6 +20,10 @@ import Types exposing (..)
 import Url exposing (Url)
 
 
+server =
+    "ケヤキ"
+
+
 main : Platform.Program () Model Msg
 main =
     Browser.application
@@ -45,6 +49,8 @@ type alias Model =
     , forceFilter : Dict String Bool
     , cycles : Result Json.Decode.Error (List FieldBossCycle)
     , error : Maybe Json.Decode.Error
+    , editTarget : Maybe FieldBossCycle
+    , editDefeatedTime : String
     }
 
 
@@ -58,6 +64,10 @@ type Msg
     | ToggleRegionFilter Region
     | ToggleForceFilter String
     | ReceiveCycles Value
+    | StartEdit FieldBossCycle
+    | ChangeEditDefeatedTime String
+    | CancelEdit
+    | SaveEdit FieldBossCycle Posix
 
 
 init : () -> Url -> Key -> ( Model, Cmd Msg )
@@ -70,10 +80,12 @@ init _ url key =
       , forceFilter = Dict.fromList [ ( "勢力ボス", False ), ( "非勢力ボス", True ) ]
       , cycles = Ok []
       , error = Nothing
+      , editTarget = Nothing
+      , editDefeatedTime = ""
       }
     , Cmd.batch
         [ Task.perform GetZone Time.here
-        , Ports.requestLoadCycles "ケヤキ"
+        , Ports.requestLoadCycles server
         ]
     )
 
@@ -160,6 +172,18 @@ update msg model =
         ReceiveCycles v ->
             ( { model | cycles = Json.Decode.decodeValue (Json.Decode.list Types.fieldBossCycleDecoder) v }, Cmd.none )
 
+        StartEdit boss ->
+            ( { model | editTarget = Just boss, editDefeatedTime = Times.omitSecond {zone = model.zone, time = model.now } }, Cmd.none )
+
+        ChangeEditDefeatedTime s ->
+            ( { model | editDefeatedTime = s }, Cmd.none )
+
+        CancelEdit ->
+            ( { model | editTarget = Nothing }, Cmd.none )
+
+        SaveEdit boss t ->
+            ( { model | editTarget = Nothing }, Ports.requestUpdateDefeatedTime { server = server, bossIdAtServer = boss.serverId, time = Types.posixToTimestamp t } )
+
 
 setDefeatedTime : List Posix -> List FieldBossCycle -> List FieldBossCycle
 setDefeatedTime numbers bossList =
@@ -224,36 +248,57 @@ view model =
     in
     { title = "Field boss cycle | Blade and Soul Revolution"
     , body =
-        [ h5 [] [ text "Blade and Soul Revolution" ]
-        , h1 [] [ text "Field boss cycle diagram" ]
-        , p [] [ text "現在、ケヤキサーバの1chにしか対応していません。ご注意を。" ]
-        , div [ class "filter-container" ]
-            [ ul [ class "filter region" ]
-                [ li [] [ filterText "大砂漠" model.regionFilter ToggleRegionFilter ]
-                , li [] [ filterText "水月平原" model.regionFilter ToggleRegionFilter ]
-                , li [] [ filterText "白青山脈" model.regionFilter ToggleRegionFilter ]
-                ]
-            ]
-        , div [ class "filter-container" ]
-            [ ul [ class "filter region" ]
-                [ li [] [ filterText "勢力ボス" model.forceFilter ToggleForceFilter ]
-                , li [] [ filterText "非勢力ボス" model.forceFilter ToggleForceFilter ]
-                ]
-            ]
-        , table [ class "main-contents" ]
-            [ thead []
-                [ tr []
-                    [ td [] []
-                    , td [ class "label-now" ] [ text <| "現在時刻: " ++ Times.omitSecond nowWithZone ]
-                    , td [ class "label-now" ] [ text <| Times.omitSecond <| Times.addHour 1 nowWithZone ]
+        viewEditor model nowWithZone
+            ++ [ h5 [] [ text "Blade and Soul Revolution" ]
+               , h1 [] [ text "Field boss cycle diagram" ]
+               , p [] [ text "現在、ケヤキサーバの1chにしか対応していません。ご注意を。" ]
+               , div [ class "filter-container" ]
+                    [ ul [ class "filter region" ]
+                        [ li [] [ filterText "大砂漠" model.regionFilter ToggleRegionFilter ]
+                        , li [] [ filterText "水月平原" model.regionFilter ToggleRegionFilter ]
+                        , li [] [ filterText "白青山脈" model.regionFilter ToggleRegionFilter ]
+                        ]
+                    ]
+               , div [ class "filter-container" ]
+                    [ ul [ class "filter region" ]
+                        [ li [] [ filterText "勢力ボス" model.forceFilter ToggleForceFilter ]
+                        , li [] [ filterText "非勢力ボス" model.forceFilter ToggleForceFilter ]
+                        ]
+                    ]
+               , table [ class "main-contents" ]
+                    [ thead []
+                        [ tr []
+                            [ td [] []
+                            , td [ class "label-now" ] [ text <| "現在時刻: " ++ Times.omitSecond nowWithZone ]
+                            , td [ class "label-now" ] [ text <| Times.omitSecond <| Times.addHour 1 nowWithZone ]
+                            ]
+                        ]
+                    , tbody [] <| List.map (viewBossTimeline model.zone model.now) ordered
+                    ]
+               , h5 [] [ text "Powered by Haskell at ケヤキ server" ]
+               , p [] [ text <| Maybe.withDefault "" <| Maybe.map Json.Decode.errorToString model.error ]
+               ]
+    }
+
+
+viewEditor : Model -> ZonedTime -> List (Html Msg)
+viewEditor model now =
+    case model.editTarget of
+        Nothing ->
+            []
+
+        Just boss ->
+            [ div [ class "backdrop" ]
+                [ div [ class "editor" ]
+                    [ h5 [] [ text "編集中" ]
+                    , div []
+                        [ input [ type_ "time", value model.editDefeatedTime, onInput ChangeEditDefeatedTime ] []
+                        , button [ onClick CancelEdit ] [ text "キャンセル" ]
+                        , button [] [ text "保存" ]
+                        ]
                     ]
                 ]
-            , tbody [] <| List.map (viewBossTimeline model.zone model.now) ordered
             ]
-        , h5 [] [ text "Powered by Haskell at ケヤキ server" ]
-        , p [] [ text <| Maybe.withDefault "" <| Maybe.map Json.Decode.errorToString model.error ]
-        ]
-    }
 
 
 filterText : String -> Dict String Bool -> (String -> msg) -> Html msg
@@ -273,7 +318,7 @@ circle th =
     div [ class <| "circle-" ++ th ++ "-container" ] [ div [ class <| "circle-" ++ th ] [] ]
 
 
-viewBossTimeline : Zone -> Posix -> FieldBossCycle -> Html msg
+viewBossTimeline : Zone -> Posix -> FieldBossCycle -> Html Msg
 viewBossTimeline zone now boss =
     let
         nextPopTime =
@@ -303,7 +348,7 @@ viewBossTimeline zone now boss =
                 , li [ class "label-region-and-area" ] [ text boss.area ]
                 , li []
                     [ span [] [ text <| "討伐時刻: " ++ ldt ]
-                    , span [ class "fas fa-edit" ] []
+                    , span [ class "fas fa-edit", onClick <| StartEdit boss ] []
                     ]
                 , li [] [ text <| "登場時刻: " ++ npt ]
                 ]
