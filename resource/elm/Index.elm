@@ -18,10 +18,7 @@ import Time.Extra exposing (Interval(..))
 import Times exposing (ZonedTime)
 import Types exposing (..)
 import Url exposing (Url)
-
-
-server =
-    "ケヤキ"
+import Url.Parser
 
 
 main : Platform.Program () Model Msg
@@ -37,20 +34,20 @@ main =
 
 
 type Page
-    = IndexPage
+    = CyclePage String
 
 
 type alias Model =
     { key : Key
     , page : Page
-    , zone : Zone
-    , now : Posix
+    , now : ZonedTime
     , regionFilter : Dict Region Bool
     , forceFilter : Dict String Bool
     , cycles : Result Json.Decode.Error (List FieldBossCycle)
     , error : Maybe Json.Decode.Error
     , editTarget : Maybe FieldBossCycle
-    , editDefeatedTime : String
+    , defeatedTimeInputValue : String
+    , editDefeatedTime : Maybe Posix
     }
 
 
@@ -65,29 +62,40 @@ type Msg
     | ToggleForceFilter String
     | ReceiveCycles Value
     | StartEdit FieldBossCycle
-    | ChangeEditDefeatedTime String
+    | ChangeDefeatedTimeInputValue String
     | CancelEdit
-    | SaveEdit FieldBossCycle Posix
+    | SaveEdit
 
 
 init : () -> Url -> Key -> ( Model, Cmd Msg )
 init _ url key =
+    let
+        page =
+            parseUrl url
+    in
     ( { key = key
-      , page = parseUrl url
-      , zone = Time.utc
-      , now = Time.millisToPosix 0
-      , regionFilter = Dict.fromList [ ( "大砂漠", False ), ( "水月平原", True ), ( "白青山脈", True ) ]
-      , forceFilter = Dict.fromList [ ( "勢力ボス", False ), ( "非勢力ボス", True ) ]
+      , page = page
+      , now = { zone = Time.utc, time = Time.millisToPosix 0 }
+      , regionFilter = Dict.fromList [ ( "大砂漠", True ), ( "水月平原", True ), ( "白青山脈", True ) ]
+      , forceFilter = Dict.fromList [ ( "勢力ボス", True ), ( "非勢力ボス", True ) ]
       , cycles = Ok []
       , error = Nothing
       , editTarget = Nothing
-      , editDefeatedTime = ""
+      , defeatedTimeInputValue = ""
+      , editDefeatedTime = Nothing
       }
     , Cmd.batch
         [ Task.perform GetZone Time.here
-        , Ports.requestLoadCycles server
+        , Ports.requestLoadCycles <| pageToServer page
         ]
     )
+
+
+pageToServer : Page -> String
+pageToServer page =
+    case page of
+        CyclePage s ->
+            s
 
 
 randomTimesGenerator : ZonedTime -> Int -> Generator (List Posix)
@@ -111,9 +119,14 @@ subscriptions _ =
         ]
 
 
+defaultServer =
+    "ケヤキ"
+
+
 parseUrl : Url -> Page
-parseUrl _ =
-    IndexPage
+parseUrl =
+    Maybe.withDefault (CyclePage defaultServer)
+        << Url.Parser.parse (Url.Parser.map CyclePage <| Url.Parser.custom "Multi byte parser" Url.percentDecode)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -131,18 +144,30 @@ update msg model =
             ( { model | page = parseUrl url }, Cmd.none )
 
         GetZone zone ->
-            ( { model | zone = zone }, Task.perform GetNowFirst Time.now )
+            let
+                now =
+                    model.now
+            in
+            ( { model | now = { now | zone = zone } }, Task.perform GetNowFirst Time.now )
 
         GetNowFirst time ->
-            ( { model | now = time }
+            let
+                now =
+                    model.now
+            in
+            ( { model | now = { now | time = time } }
             , Random.generate GetRandomTimes <|
-                randomTimesGenerator { zone = model.zone, time = time } <|
+                randomTimesGenerator model.now <|
                     List.length <|
                         Result.withDefault [] model.cycles
             )
 
         GetNow time ->
-            ( { model | now = time }
+            let
+                now =
+                    model.now
+            in
+            ( { model | now = { now | time = time } }
             , Cmd.none
             )
 
@@ -173,16 +198,51 @@ update msg model =
             ( { model | cycles = Json.Decode.decodeValue (Json.Decode.list Types.fieldBossCycleDecoder) v }, Cmd.none )
 
         StartEdit boss ->
-            ( { model | editTarget = Just boss, editDefeatedTime = Times.omitSecond {zone = model.zone, time = model.now } }, Cmd.none )
+            ( { model
+                | editTarget = Just boss
+                , defeatedTimeInputValue = Times.minuteSecond model.now
+                , editDefeatedTime = Just model.now.time
+              }
+            , Cmd.none
+            )
 
-        ChangeEditDefeatedTime s ->
-            ( { model | editDefeatedTime = s }, Cmd.none )
+        ChangeDefeatedTimeInputValue s ->
+            ( { model
+                | defeatedTimeInputValue = s
+                , editDefeatedTime = Times.hourMinuteToPosix model.now s
+              }
+            , Cmd.none
+            )
 
         CancelEdit ->
             ( { model | editTarget = Nothing }, Cmd.none )
 
-        SaveEdit boss t ->
-            ( { model | editTarget = Nothing }, Ports.requestUpdateDefeatedTime { server = server, bossIdAtServer = boss.serverId, time = Types.posixToTimestamp t } )
+        SaveEdit ->
+            case model.editTarget of
+                Nothing ->
+                    ( model, Cmd.none )
+
+                Just boss ->
+                    case model.editDefeatedTime of
+                        Nothing ->
+                            ( model, Cmd.none )
+
+                        Just t ->
+                            let s = Debug.log "" <| Times.fullFormat { zone = model.now.zone, time = t }
+                            in
+                            ( { model
+                                | editTarget = Nothing
+                                , cycles = Ok <|
+                                    List.Extra.setIf (\elm -> elm.id == boss.id)
+                                        { boss | lastDefeatedTime = t }
+                                        (Result.withDefault [] model.cycles)
+                              }
+                            , Ports.requestUpdateDefeatedTime
+                                { server = pageToServer model.page
+                                , bossIdAtServer = boss.serverId
+                                , time = Types.posixToTimestamp t
+                                }
+                            )
 
 
 setDefeatedTime : List Posix -> List FieldBossCycle -> List FieldBossCycle
@@ -236,69 +296,106 @@ view model =
                 (\boss ->
                     let
                         nextTime =
-                            Types.nextPopTime boss model.now
+                            Types.nextPopTime boss model.now.time
                     in
                     Time.posixToMillis nextTime.time
                 )
             <|
                 getFilteredCycles model
 
-        nowWithZone =
-            { zone = model.zone, time = model.now }
+        title =
+            "Field boss cycle | Blade and Soul Revolution"
+
+        body =
+            [ header []
+                [ h5 [] [ text title ]
+                , h1 [] [ text "" ]
+                , p [] [ text <| "サーバ: " ++ pageToServer model.page ]
+                ]
+            , div [ class "filter-container" ]
+                [ ul [ class "filter region" ]
+                    [ li [] [ filterText "大砂漠" model.regionFilter ToggleRegionFilter ]
+                    , li [] [ filterText "水月平原" model.regionFilter ToggleRegionFilter ]
+                    , li [] [ filterText "白青山脈" model.regionFilter ToggleRegionFilter ]
+                    ]
+                ]
+            , div [ class "filter-container" ]
+                [ ul [ class "filter region" ]
+                    [ li [] [ filterText "勢力ボス" model.forceFilter ToggleForceFilter ]
+                    , li [] [ filterText "非勢力ボス" model.forceFilter ToggleForceFilter ]
+                    ]
+                ]
+            , table [ class "main-contents" ]
+                [ thead []
+                    [ tr []
+                        [ td [] []
+                        , td [ class "label-now" ] [ text <| "現在時刻: " ++ Times.omitSecond model.now ]
+                        , td [ class "label-now" ] [ text <| Times.omitSecond <| Times.addHour 1 model.now ]
+                        ]
+                    ]
+                , tbody [] <| List.map (viewBossTimeline model.now) ordered
+                ]
+            , footer []
+                [ h5 [] [ text "Powered by Haskell at ケヤキ server" ]
+                , p [] [ text <| Maybe.withDefault "" <| Maybe.map Json.Decode.errorToString model.error ]
+                ]
+            ]
     in
-    { title = "Field boss cycle | Blade and Soul Revolution"
+    { title = title
     , body =
-        viewEditor model nowWithZone
-            ++ [ h5 [] [ text "Blade and Soul Revolution" ]
-               , h1 [] [ text "Field boss cycle diagram" ]
-               , p [] [ text "現在、ケヤキサーバの1chにしか対応していません。ご注意を。" ]
-               , div [ class "filter-container" ]
-                    [ ul [ class "filter region" ]
-                        [ li [] [ filterText "大砂漠" model.regionFilter ToggleRegionFilter ]
-                        , li [] [ filterText "水月平原" model.regionFilter ToggleRegionFilter ]
-                        , li [] [ filterText "白青山脈" model.regionFilter ToggleRegionFilter ]
-                        ]
-                    ]
-               , div [ class "filter-container" ]
-                    [ ul [ class "filter region" ]
-                        [ li [] [ filterText "勢力ボス" model.forceFilter ToggleForceFilter ]
-                        , li [] [ filterText "非勢力ボス" model.forceFilter ToggleForceFilter ]
-                        ]
-                    ]
-               , table [ class "main-contents" ]
-                    [ thead []
-                        [ tr []
-                            [ td [] []
-                            , td [ class "label-now" ] [ text <| "現在時刻: " ++ Times.omitSecond nowWithZone ]
-                            , td [ class "label-now" ] [ text <| Times.omitSecond <| Times.addHour 1 nowWithZone ]
-                            ]
-                        ]
-                    , tbody [] <| List.map (viewBossTimeline model.zone model.now) ordered
-                    ]
-               , h5 [] [ text "Powered by Haskell at ケヤキ server" ]
-               , p [] [ text <| Maybe.withDefault "" <| Maybe.map Json.Decode.errorToString model.error ]
-               ]
+        case model.editTarget of
+            Nothing ->
+                body
+
+            Just _ ->
+                [ div [ class "container-body-and-backdrop" ] <| body ++ [ div [ class "backdrop" ] [] ] ] ++ viewEditor model
     }
 
 
-viewEditor : Model -> ZonedTime -> List (Html Msg)
-viewEditor model now =
+viewEditor : Model -> List (Html Msg)
+viewEditor model =
     case model.editTarget of
         Nothing ->
             []
 
         Just boss ->
-            [ div [ class "backdrop" ]
-                [ div [ class "editor" ]
-                    [ h5 [] [ text "編集中" ]
-                    , div []
-                        [ input [ type_ "time", value model.editDefeatedTime, onInput ChangeEditDefeatedTime ] []
-                        , button [ onClick CancelEdit ] [ text "キャンセル" ]
-                        , button [] [ text "保存" ]
+            [ div [ class "editor" ]
+                [ p [ class "description" ] [ text "討伐時刻の報告へのご協力ありがとうございます。正確な時刻が分からない場合はだいたいのところで構いませんーん。" ]
+                , ul []
+                    [ li [] [ span [ class "label-boss-name", style "color" (colorForRegion boss.region) ] [ text boss.name ] ]
+                    , li [] [ fbIcon boss ]
+                    , li [ class "label-repop-time" ] [ text <| "再登場時間: " ++ String.fromInt boss.repopIntervalMinutes ++ "分" ]
+                    ]
+                , div [ class "input-group" ]
+                    [ div [ class "input-group-prepend" ]
+                        [ div [ class "input-group-text" ]
+                            [ span [ class "fas fa-clock" ] [] ]
                         ]
+                    , input
+                        [ type_ "time"
+                        , class "form-control"
+                        , class <| inputErrorClass model.editDefeatedTime
+                        , value model.defeatedTimeInputValue
+                        , onInput ChangeDefeatedTimeInputValue
+                        ]
+                        []
+                    ]
+                , div [ class "btn-group" ]
+                    [ button [ class "btn btn-sm btn-light", onClick CancelEdit ] [ text "キャンセル" ]
+                    , button [ class "btn btn-sm btn-primary", onClick SaveEdit ] [ text "保存" ]
                     ]
                 ]
             ]
+
+
+inputErrorClass : Maybe a -> String
+inputErrorClass j =
+    case j of
+        Nothing ->
+            "has-error"
+
+        Just _ ->
+            ""
 
 
 filterText : String -> Dict String Bool -> (String -> msg) -> Html msg
@@ -318,20 +415,20 @@ circle th =
     div [ class <| "circle-" ++ th ++ "-container" ] [ div [ class <| "circle-" ++ th ] [] ]
 
 
-viewBossTimeline : Zone -> Posix -> FieldBossCycle -> Html Msg
-viewBossTimeline zone now boss =
+viewBossTimeline : ZonedTime -> FieldBossCycle -> Html Msg
+viewBossTimeline now boss =
     let
         nextPopTime =
-            Types.nextPopTime boss now
+            Types.nextPopTime boss now.time
 
         ldt =
-            Times.omitSecond { zone = zone, time = boss.lastDefeatedTime }
+            Times.omitSecond { now | time = boss.lastDefeatedTime }
 
         npt =
-            Times.omitSecond { zone = zone, time = nextPopTime.time }
+            Times.omitSecond { now | time = nextPopTime.time }
 
         repop =
-            Types.nextPopTime boss now
+            Types.nextPopTime boss now.time
     in
     tr []
         [ td [ class "boss-info" ]
@@ -347,14 +444,14 @@ viewBossTimeline zone now boss =
                 [ li [ class "label-region-and-area" ] [ text boss.region ]
                 , li [ class "label-region-and-area" ] [ text boss.area ]
                 , li []
-                    [ span [] [ text <| "討伐時刻: " ++ ldt ]
+                    [ span [ class "label-time" ] [ text <| "討伐時刻: " ++ ldt ]
                     , span [ class "fas fa-edit", onClick <| StartEdit boss ] []
                     ]
-                , li [] [ text <| "登場時刻: " ++ npt ]
+                , li [ class "label-time" ] [ text <| "登場時刻: " ++ npt ]
                 ]
             ]
         , td [ class "time" ]
-            [ span [ class "time-bar", class <| timeBarColorClass repop.remainSeconds, style "width" <| timeBarWidth repop now ]
+            [ span [ class "time-bar", class <| timeBarColorClass repop.remainSeconds, style "width" <| timeBarWidth repop now.time ]
                 [ text <| "登場まで" ++ remainTimeText repop.remainSeconds
                 ]
             ]

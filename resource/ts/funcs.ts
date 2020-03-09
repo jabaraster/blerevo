@@ -27,14 +27,13 @@ const firestore = Firebase.firestore();
 export async function updateDefeatedTime(server: string, bossIdAtServer: string, time: Timestamp): Promise<void> {
     const doc = await firestore.doc(`${COLLECTION_ID}/${server}/cycles/${bossIdAtServer}`)
     await doc.update({
-        lastDefeatedTime: time,
+        lastDefeatedTime: new Date(time.seconds * 1000),
     })
 }
 
 export async function listCycles(server: string): Promise<FieldBossCycle[]> {
     const ret: FieldBossCycle[] = [];
     await firestore.collection(`${COLLECTION_ID}/${server}/cycles/`)
-    .orderBy("sortOrder", "asc")
     .get()
     .then(d => {
         d.forEach(r => {

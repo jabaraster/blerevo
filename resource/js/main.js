@@ -10,7 +10,7 @@ var ports = app.ports;
 ports.requestLoadCycles.subscribe((server) => {
   Funcs.listCycles(server)
     .then(res => {
-      app.ports.receiveCycles.send(res);
+      console.log(res);
     })
     .catch(err => {
       console.log(err);
