@@ -18,38 +18,70 @@ type alias ZonedTime =
 --     Result.withDefault (Time.millisToPosix 0) <| Iso8601.toTime s
 
 
-addHour : Int -> ZonedTime -> ZonedTime
-addHour hour zonedTime =
+addMinute : Int -> ZonedTime -> ZonedTime
+addMinute val zonedTime =
     { zone = zonedTime.zone
-    , time = Time.Extra.add Hour hour zonedTime.zone zonedTime.time
+    , time = Time.Extra.add Minute val zonedTime.zone zonedTime.time
     }
 
 
+addHour : Int -> ZonedTime -> ZonedTime
+addHour val zonedTime =
+    { zone = zonedTime.zone
+    , time = Time.Extra.add Hour val zonedTime.zone zonedTime.time
+    }
+
+
+addDay : Int -> ZonedTime -> ZonedTime
+addDay val zonedTime =
+    { zone = zonedTime.zone
+    , time = Time.Extra.add Day val zonedTime.zone zonedTime.time
+    }
+
+
+isValidHourMinute : String -> Bool
+isValidHourMinute s =
+    case Parser.run hourMinuteParser s of
+        Ok _ ->
+            True
+
+        Err _ ->
+            False
+
+
 hourMinuteToPosix : ZonedTime -> String -> Maybe Posix
-hourMinuteToPosix today s =
+hourMinuteToPosix now s =
     let
         mHourMinute =
             Result.toMaybe <| Parser.run hourMinuteParser s
     in
-        Maybe.map (Time.Extra.partsToPosix today.zone) <|
-        Maybe.map
-            (\hm ->
-                let
-                    nowParts =
-                        Time.Extra.posixToParts today.zone today.time
-                in
-                { nowParts
-                    | hour = hm.hour
-                    , minute = hm.minute
-                    , second = 0
-                    , millisecond = 0
-                }
+    Maybe.map
+        (\hm ->
+            let
+                nowParts =
+                    Time.Extra.posixToParts now.zone now.time
+            in
+            { nowParts
+                | hour = hm.hour
+                , minute = hm.minute
+                , second = 0
+                , millisecond = 0
+            }
+        )
+        mHourMinute
+        |> Maybe.map (Time.Extra.partsToPosix now.zone)
+        |> Maybe.map
+            (\p ->
+                if Time.posixToMillis now.time > Time.posixToMillis p then
+                    p
+
+                else
+                    (addDay -1 { zone = now.zone, time = p }).time
             )
-            mHourMinute
 
 
 type alias HourMinute =
-    { hour: Int, minute: Int }
+    { hour : Int, minute : Int }
 
 
 hourMinuteParser : Parser.Parser HourMinute
@@ -93,8 +125,8 @@ checkTimeNumber i =
         Parser.succeed i
 
 
-minuteSecond : ZonedTime -> String
-minuteSecond time =
+hourMinute : ZonedTime -> String
+hourMinute time =
     DateFormat.format
         [ hourMilitaryFixed
         , text ":"

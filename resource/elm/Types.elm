@@ -69,10 +69,6 @@ posixToTimestamp p =
     { seconds = round (toFloat millis / 1000), nanoseconds = 0 }
 
 
-
--- ナノ秒の精度は不要.
-
-
 type alias PopTime =
     { time : Posix
     , remainSeconds : Int

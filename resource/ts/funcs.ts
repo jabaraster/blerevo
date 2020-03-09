@@ -31,16 +31,26 @@ export async function updateDefeatedTime(server: string, bossIdAtServer: string,
     })
 }
 
-export async function listCycles(server: string): Promise<FieldBossCycle[]> {
+export async function listCycles(server: string, updateCallback:(FieldBossCycle) => void ): Promise<FieldBossCycle[]> {
+    const collection = await firestore.collection(`${COLLECTION_ID}/${server}/cycles/`)
+                            .get();
+
     const ret: FieldBossCycle[] = [];
-    await firestore.collection(`${COLLECTION_ID}/${server}/cycles/`)
-    .get()
-    .then(d => {
-        d.forEach(r => {
-            const d: any = r.data();
-            d.serverId = r.id;
-            ret.push(d);
-        });
-    })
+    collection.forEach(r => {
+        firestore.collection(`${COLLECTION_ID}/${server}/cycles/`).doc(r.id)
+            .onSnapshot((doc) => {
+                if (!doc.metadata.hasPendingWrites) {
+                    updateCallback(docToBoss(doc));
+                }
+            });
+        ret.push(docToBoss(r));
+    });
+
+    return ret;
+}
+
+function docToBoss(doc): FieldBossCycle {
+    const ret = doc.data();
+    ret.serverId = doc.id;
     return ret;
 }

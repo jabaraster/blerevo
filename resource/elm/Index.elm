@@ -47,7 +47,6 @@ type alias Model =
     , error : Maybe Json.Decode.Error
     , editTarget : Maybe FieldBossCycle
     , defeatedTimeInputValue : String
-    , editDefeatedTime : Maybe Posix
     }
 
 
@@ -63,8 +62,11 @@ type Msg
     | ReceiveCycles Value
     | StartEdit FieldBossCycle
     | ChangeDefeatedTimeInputValue String
+    | NowDefeated
+    | ChangeRemainMinutes FieldBossCycle String
     | CancelEdit
     | SaveEdit
+    | ReceiveUpdate Value
 
 
 init : () -> Url -> Key -> ( Model, Cmd Msg )
@@ -82,7 +84,6 @@ init _ url key =
       , error = Nothing
       , editTarget = Nothing
       , defeatedTimeInputValue = ""
-      , editDefeatedTime = Nothing
       }
     , Cmd.batch
         [ Task.perform GetZone Time.here
@@ -116,6 +117,7 @@ subscriptions _ =
     Sub.batch
         [ Time.every 1000 GetNow
         , Ports.receiveCycles ReceiveCycles
+        , Ports.receiveUpdate ReceiveUpdate
         ]
 
 
@@ -126,7 +128,12 @@ defaultServer =
 parseUrl : Url -> Page
 parseUrl =
     Maybe.withDefault (CyclePage defaultServer)
-        << Url.Parser.parse (Url.Parser.map CyclePage <| Url.Parser.custom "Multi byte parser" Url.percentDecode)
+        << Url.Parser.parse
+            (Url.Parser.oneOf
+                [ Url.Parser.map (CyclePage defaultServer) <| Url.Parser.s "index.html"
+                , Url.Parser.map CyclePage <| Url.Parser.custom "Multi byte parser" Url.percentDecode
+                ]
+            )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -198,10 +205,13 @@ update msg model =
             ( { model | cycles = Json.Decode.decodeValue (Json.Decode.list Types.fieldBossCycleDecoder) v }, Cmd.none )
 
         StartEdit boss ->
+            let
+                val =
+                    boss.lastDefeatedTime
+            in
             ( { model
                 | editTarget = Just boss
-                , defeatedTimeInputValue = Times.minuteSecond model.now
-                , editDefeatedTime = Just model.now.time
+                , defeatedTimeInputValue = Times.hourMinute { zone = model.now.zone, time = val }
               }
             , Cmd.none
             )
@@ -209,10 +219,35 @@ update msg model =
         ChangeDefeatedTimeInputValue s ->
             ( { model
                 | defeatedTimeInputValue = s
-                , editDefeatedTime = Times.hourMinuteToPosix model.now s
               }
             , Cmd.none
             )
+
+        NowDefeated ->
+            ( { model | defeatedTimeInputValue = Times.hourMinute model.now }
+            , Cmd.none
+            )
+
+        ChangeRemainMinutes boss s ->
+            case String.toInt s of
+                Nothing ->
+                    ( model, Cmd.none )
+
+                Just i ->
+                    if i <= 0 then
+                        ( model, Cmd.none )
+
+                    else
+                        let
+                            repopTime =
+                                Times.addMinute i model.now
+
+                            ldt =
+                                Times.addMinute (negate boss.repopIntervalMinutes) repopTime
+                        in
+                        ( { model | defeatedTimeInputValue = Times.hourMinute ldt }
+                        , Cmd.none
+                        )
 
         CancelEdit ->
             ( { model | editTarget = Nothing }, Cmd.none )
@@ -223,19 +258,19 @@ update msg model =
                     ( model, Cmd.none )
 
                 Just boss ->
-                    case model.editDefeatedTime of
+                    case Times.hourMinuteToPosix model.now model.defeatedTimeInputValue of
                         Nothing ->
                             ( model, Cmd.none )
 
                         Just t ->
-                            let s = Debug.log "" <| Times.fullFormat { zone = model.now.zone, time = t }
-                            in
                             ( { model
                                 | editTarget = Nothing
-                                , cycles = Ok <|
-                                    List.Extra.setIf (\elm -> elm.id == boss.id)
-                                        { boss | lastDefeatedTime = t }
-                                        (Result.withDefault [] model.cycles)
+                                , cycles =
+                                    Result.map
+                                        (\list ->
+                                            List.Extra.setIf (\elm -> elm.id == boss.id) { boss | lastDefeatedTime = t } list
+                                        )
+                                        model.cycles
                               }
                             , Ports.requestUpdateDefeatedTime
                                 { server = pageToServer model.page
@@ -243,6 +278,23 @@ update msg model =
                                 , time = Types.posixToTimestamp t
                                 }
                             )
+
+        ReceiveUpdate v ->
+            case Json.Decode.decodeValue Types.fieldBossCycleDecoder v of
+                Err e ->
+                    ( { model | error = Just e }, Cmd.none )
+
+                Ok updated ->
+                    ( { model
+                        | cycles =
+                            Result.map
+                                (\list ->
+                                    List.Extra.setIf (\elm -> elm.id == updated.id) updated list
+                                )
+                                model.cycles
+                      }
+                    , Cmd.none
+                    )
 
 
 setDefeatedTime : List Posix -> List FieldBossCycle -> List FieldBossCycle
@@ -348,7 +400,7 @@ view model =
                 body
 
             Just _ ->
-                [ div [ class "container-body-and-backdrop" ] <| body ++ [ div [ class "backdrop" ] [] ] ] ++ viewEditor model
+                [ div [ class "container-body-and-backdrop" ] <| body ++ [ div [ class "backdrop", onClick CancelEdit ] [] ] ] ++ viewEditor model
     }
 
 
@@ -360,25 +412,39 @@ viewEditor model =
 
         Just boss ->
             [ div [ class "editor" ]
-                [ p [ class "description" ] [ text "討伐時刻の報告へのご協力ありがとうございます。正確な時刻が分からない場合はだいたいのところで構いませんーん。" ]
+                [ p [ class "description" ] [ text "討伐時刻の報告へのご協力ありがとうございます。正確な時刻が分からない場合はだいたいのところで構いませーん。" ]
                 , ul []
                     [ li [] [ span [ class "label-boss-name", style "color" (colorForRegion boss.region) ] [ text boss.name ] ]
                     , li [] [ fbIcon boss ]
                     , li [ class "label-repop-time" ] [ text <| "再登場時間: " ++ String.fromInt boss.repopIntervalMinutes ++ "分" ]
                     ]
-                , div [ class "input-group" ]
-                    [ div [ class "input-group-prepend" ]
-                        [ div [ class "input-group-text" ]
-                            [ span [ class "fas fa-clock" ] [] ]
-                        ]
+                , div [ class "form-group" ]
+                    [ label [] [ text "討伐時刻で報告" ]
                     , input
                         [ type_ "time"
                         , class "form-control"
-                        , class <| inputErrorClass model.editDefeatedTime
+                        , class <| inputErrorClass model.defeatedTimeInputValue
                         , value model.defeatedTimeInputValue
                         , onInput ChangeDefeatedTimeInputValue
                         ]
                         []
+                    , button [ class "btn btn-sm btn-success", onClick NowDefeated ] [ text "たった今討伐" ]
+                    ]
+                , div [ class "form-group" ]
+                    [ label [] [ text "残り時間で報告" ]
+                    , input [ type_ "number", class "form-control", onInput <| ChangeRemainMinutes boss ] []
+                    ]
+                , div [ class "form-group" ]
+                    [ label []
+                        [ text <|
+                            "出現予定時刻: "
+                                ++ (Maybe.withDefault "" <|
+                                        Maybe.map Times.omitSecond <|
+                                            Maybe.map (Times.addMinute boss.repopIntervalMinutes) <|
+                                                Maybe.map (\t -> { zone = model.now.zone, time = t }) <|
+                                                    Times.hourMinuteToPosix model.now model.defeatedTimeInputValue
+                                   )
+                        ]
                     ]
                 , div [ class "btn-group" ]
                     [ button [ class "btn btn-sm btn-light", onClick CancelEdit ] [ text "キャンセル" ]
@@ -388,14 +454,13 @@ viewEditor model =
             ]
 
 
-inputErrorClass : Maybe a -> String
-inputErrorClass j =
-    case j of
-        Nothing ->
-            "has-error"
+inputErrorClass : String -> String
+inputErrorClass s =
+    if Times.isValidHourMinute s then
+        ""
 
-        Just _ ->
-            ""
+    else
+        "has-error"
 
 
 filterText : String -> Dict String Bool -> (String -> msg) -> Html msg
@@ -430,7 +495,7 @@ viewBossTimeline now boss =
         repop =
             Types.nextPopTime boss now.time
     in
-    tr []
+    tr [ onClick <| StartEdit boss ]
         [ td [ class "boss-info" ]
             [ ul []
                 [ li [] [ span [ class "label-boss-name", style "color" (colorForRegion boss.region) ] [ text boss.name ] ]
@@ -445,7 +510,7 @@ viewBossTimeline now boss =
                 , li [ class "label-region-and-area" ] [ text boss.area ]
                 , li []
                     [ span [ class "label-time" ] [ text <| "討伐時刻: " ++ ldt ]
-                    , span [ class "fas fa-edit", onClick <| StartEdit boss ] []
+                    , span [ class "fas fa-edit" ] []
                     ]
                 , li [ class "label-time" ] [ text <| "登場時刻: " ++ npt ]
                 ]

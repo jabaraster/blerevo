@@ -8,9 +8,12 @@ var app = Elm.Index.init({
 var ports = app.ports;
 
 ports.requestLoadCycles.subscribe((server) => {
-  Funcs.listCycles(server)
+  const callback = (boss) => {
+    ports.receiveUpdate.send(boss);
+  };
+  Funcs.listCycles(server, callback)
     .then(res => {
-      console.log(res);
+      ports.receiveCycles.send(res);
     })
     .catch(err => {
       console.log(err);
