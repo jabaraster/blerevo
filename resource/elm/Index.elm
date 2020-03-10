@@ -356,7 +356,7 @@ view model =
                 getFilteredCycles model
 
         title =
-            "Field boss cycle | Blade and Soul Revolution"
+            "HASTOOL | Blade and Soul Revolution Field boss cycle tracker"
 
         body =
             [ header []
