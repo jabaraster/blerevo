@@ -2,9 +2,7 @@ import * as _ from "../less/style.less";
 import { Elm } from "../elm/Index.elm";
 import * as Funcs from "../ts/funcs";
 
-var app = Elm.Index.init({
-  node: document.getElementById('app')
-});
+var app = Elm.Index.init();
 var ports = app.ports;
 
 ports.requestLoadCycles.subscribe((server) => {
