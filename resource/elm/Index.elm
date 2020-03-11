@@ -498,15 +498,15 @@ viewBossTimeline now boss =
         repop =
             Types.nextPopTime boss now.time
     in
-    tr [ onClick <| StartEdit boss ]
-        [ td [ class "boss-info" ]
+    tr []
+        [ td [ class "boss-info", onClick <| StartEdit boss ]
             [ ul []
                 [ li [] [ span [ class "label-boss-name", style "color" (colorForRegion boss.region) ] [ text boss.name ] ]
                 , li [] [ fbIcon boss ]
                 , li [ class "label-repop-time" ] [ text <| "再登場時間: " ++ String.fromInt boss.repopIntervalMinutes ++ "分" ]
                 ]
             ]
-        , td [ class "repop-info" ]
+        , td [ class "repop-info", onClick <| StartEdit boss ]
             [ ul
                 []
                 [ li [ class "label-region-and-area" ] [ text boss.region ]
