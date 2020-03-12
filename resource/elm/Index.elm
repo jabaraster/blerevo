@@ -1,4 +1,4 @@
-module Index exposing (Model, Msg(..), Page(..), checkbox, circle, colorForRegion, fbIcon, filterText, forceLabel, forceText, getFilteredCycles, init, main, parseUrl, randomTimesGenerator, remainTimeText, setDefeatedTime, subscriptions, timeBarColorClass, timeBarWidth, update, view, viewBossTimeline)
+module Index exposing (..)
 
 import Browser exposing (Document, UrlRequest)
 import Browser.Navigation as Nav exposing (Key)
@@ -10,7 +10,6 @@ import Json.Decode
 import Json.Encode exposing (Value)
 import List.Extra
 import Ports
-import Random exposing (Generator)
 import Task
 import TestData
 import Time exposing (Posix, Zone)
@@ -37,12 +36,39 @@ type Page
     = CyclePage String
 
 
+type SortPolicy
+    = NaturalOrder
+    | NextPopTimeOrder
+
+
+stringToSortPolicy : String -> SortPolicy
+stringToSortPolicy s =
+    case s of
+        "NaturalOrder" ->
+            NaturalOrder
+
+        _ ->
+            NextPopTimeOrder
+
+
+sortPolicyToString : SortPolicy -> String
+sortPolicyToString policy =
+    case policy of
+        NaturalOrder ->
+            "NaturalOrder"
+
+        NextPopTimeOrder ->
+            "NextPopTimeOrder"
+
+
 type alias Model =
     { key : Key
     , page : Page
-    , now : ZonedTime
+    , zone : Zone
+    , now : Posix
     , regionFilter : Dict Region Bool
     , forceFilter : Dict String Bool
+    , sortPolicy : SortPolicy
     , cycles : Result Json.Decode.Error (List FieldBossCycle)
     , error : Maybe Json.Decode.Error
     , editTarget : Maybe FieldBossCycle
@@ -56,10 +82,10 @@ type Msg
     | GetZone Zone
     | GetNowFirst Posix
     | GetNow Posix
-    | GetRandomTimes (List Posix)
     | ToggleRegionFilter Region
     | ToggleForceFilter String
     | ReceiveCycles Value
+    | ChangeSortPolicy SortPolicy
     | StartEdit FieldBossCycle
     | ChangeDefeatedTimeInputValue String
     | NowDefeated
@@ -77,9 +103,11 @@ init _ url key =
     in
     ( { key = key
       , page = page
-      , now = { zone = Time.utc, time = Time.millisToPosix 0 }
+      , zone = Time.utc
+      , now = Time.millisToPosix 0
       , regionFilter = Dict.fromList [ ( "大砂漠", True ), ( "水月平原", True ), ( "白青山脈", True ) ]
       , forceFilter = Dict.fromList [ ( "勢力ボス", True ), ( "非勢力ボス", True ) ]
+      , sortPolicy = NextPopTimeOrder
       , cycles = Ok []
       , error = Nothing
       , editTarget = Nothing
@@ -97,19 +125,6 @@ pageToServer page =
     case page of
         CyclePage s ->
             s
-
-
-randomTimesGenerator : ZonedTime -> Int -> Generator (List Posix)
-randomTimesGenerator now len =
-    let
-        min =
-            Time.Extra.add Minute -120 now.zone now.time
-
-        max =
-            Time.Extra.add Hour 0 now.zone now.time
-    in
-    Random.map (List.map Time.millisToPosix) <|
-        Random.list len (Random.int (Time.posixToMillis min) (Time.posixToMillis max))
 
 
 subscriptions : Model -> Sub Msg
@@ -151,35 +166,17 @@ update msg model =
             ( { model | page = parseUrl url }, Cmd.none )
 
         GetZone zone ->
-            let
-                now =
-                    model.now
-            in
-            ( { model | now = { now | zone = zone } }, Task.perform GetNowFirst Time.now )
+            ( { model | zone = zone }, Task.perform GetNowFirst Time.now )
 
         GetNowFirst time ->
-            let
-                now =
-                    model.now
-            in
-            ( { model | now = { now | time = time } }
-            , Random.generate GetRandomTimes <|
-                randomTimesGenerator model.now <|
-                    List.length <|
-                        Result.withDefault [] model.cycles
-            )
+            ( { model | now = time }, Cmd.none )
 
         GetNow time ->
             let
                 now =
                     model.now
             in
-            ( { model | now = { now | time = time } }
-            , Cmd.none
-            )
-
-        GetRandomTimes times ->
-            ( { model | cycles = Result.map (setDefeatedTime times) model.cycles }, Cmd.none )
+            ( { model | now = time }, Cmd.none )
 
         ToggleRegionFilter region ->
             ( { model
@@ -204,6 +201,9 @@ update msg model =
         ReceiveCycles v ->
             ( { model | cycles = Json.Decode.decodeValue (Json.Decode.list Types.fieldBossCycleDecoder) v }, Cmd.none )
 
+        ChangeSortPolicy policy ->
+            ( { model | sortPolicy = policy }, Cmd.none )
+
         StartEdit boss ->
             let
                 val =
@@ -211,7 +211,7 @@ update msg model =
             in
             ( { model
                 | editTarget = Just boss
-                , defeatedTimeInputValue = Times.hourMinute { zone = model.now.zone, time = val }
+                , defeatedTimeInputValue = Times.hourMinute { zone = model.zone, time = val }
               }
             , Cmd.none
             )
@@ -224,7 +224,7 @@ update msg model =
             )
 
         NowDefeated ->
-            ( { model | defeatedTimeInputValue = Times.hourMinute model.now }
+            ( { model | defeatedTimeInputValue = Times.hourMinute <| zonedNow model }
             , Cmd.none
             )
 
@@ -240,7 +240,7 @@ update msg model =
                     else
                         let
                             repopTime =
-                                Times.addMinute i model.now
+                                Times.addMinute i <| zonedNow model
 
                             ldt =
                                 Times.addMinute (negate boss.repopIntervalMinutes) repopTime
@@ -258,7 +258,7 @@ update msg model =
                     ( model, Cmd.none )
 
                 Just boss ->
-                    case Times.hourMinuteToPosix model.now model.defeatedTimeInputValue of
+                    case Times.hourMinuteToPosix (zonedNow model) model.defeatedTimeInputValue of
                         Nothing ->
                             ( model, Cmd.none )
 
@@ -297,16 +297,6 @@ update msg model =
                     )
 
 
-setDefeatedTime : List Posix -> List FieldBossCycle -> List FieldBossCycle
-setDefeatedTime numbers bossList =
-    List.map
-        (\( t, boss ) ->
-            { boss | lastDefeatedTime = t }
-        )
-    <|
-        List.Extra.zip numbers bossList
-
-
 getFilteredCycles : Model -> List FieldBossCycle
 getFilteredCycles model =
     List.filter
@@ -340,19 +330,36 @@ forceText b =
         "非勢力ボス"
 
 
+zonedNow : Model -> ZonedTime
+zonedNow model =
+    { zone = model.zone, time = model.now }
+
+
+bossComparator : Zone -> Posix -> SortPolicy -> FieldBossCycle -> Int
+bossComparator zone now policy =
+    case policy of
+        NaturalOrder ->
+            .sortOrder
+
+        NextPopTimeOrder ->
+            \boss ->
+                let
+                    nextTime =
+                        Types.nextPopTime boss now
+                in
+                -- 前回討伐が5分以内のボスは画面上部に残す. この方が報告しやすい.
+                if Time.Extra.diff Minute zone nextTime.preTime now < 5 then
+                    Time.posixToMillis nextTime.preTime
+
+                else
+                    Time.posixToMillis nextTime.time
+
+
 view : Model -> Document Msg
 view model =
     let
         ordered =
-            List.sortBy
-                (\boss ->
-                    let
-                        nextTime =
-                            Types.nextPopTime boss model.now.time
-                    in
-                    Time.posixToMillis nextTime.time
-                )
-            <|
+            List.sortBy (bossComparator model.zone model.now model.sortPolicy) <|
                 getFilteredCycles model
 
         title =
@@ -379,15 +386,21 @@ view model =
                     , li [] [ filterText "非勢力ボス" model.forceFilter ToggleForceFilter ]
                     ]
                 ]
+            , div [ class "filter-container" ]
+                [ ul [ class "filter region" ]
+                    [ li [] [ checkbox "普通に並べる" (model.sortPolicy == NaturalOrder) (ChangeSortPolicy NaturalOrder) ]
+                    , li [] [ checkbox "登場順に並べる" (model.sortPolicy /= NaturalOrder) (ChangeSortPolicy NextPopTimeOrder) ]
+                    ]
+                ]
             , table [ class "main-contents" ]
                 [ thead []
                     [ tr []
                         [ td [] []
-                        , td [ class "label-now" ] [ text <| "現在時刻: " ++ Times.omitSecond model.now ]
-                        , td [ class "label-now" ] [ text <| Times.omitSecond <| Times.addHour 1 model.now ]
+                        , td [ class "label-now" ] [ text <| "現在時刻: " ++ (Times.omitSecond <| zonedNow model) ]
+                        , td [ class "label-now" ] [ text <| Times.omitSecond <| Times.addHour 1 <| zonedNow model ]
                         ]
                     ]
-                , tbody [] <| List.map (viewBossTimeline model.now) ordered
+                , tbody [] <| List.map (viewBossTimeline <| zonedNow model) ordered
                 ]
             , footer []
                 [ h5 [] [ text "Powered by Haskell at ケヤキ server" ]
@@ -444,8 +457,8 @@ viewEditor model =
                                 ++ (Maybe.withDefault "" <|
                                         Maybe.map Times.omitSecond <|
                                             Maybe.map (Times.addMinute boss.repopIntervalMinutes) <|
-                                                Maybe.map (\t -> { zone = model.now.zone, time = t }) <|
-                                                    Times.hourMinuteToPosix model.now model.defeatedTimeInputValue
+                                                Maybe.map (\t -> { zone = model.zone, time = t }) <|
+                                                    Times.hourMinuteToPosix (zonedNow model) model.defeatedTimeInputValue
                                    )
                         ]
                     ]
@@ -515,6 +528,7 @@ viewBossTimeline now boss =
                     [ span [ class "label-time" ] [ text <| "討伐報告: " ++ ldt ]
                     , span [ class "fas fa-edit" ] []
                     ]
+                , li [ class "label-time" ] [ text <| "前回討伐: " ++ Times.omitSecond { now | time = nextPopTime.preTime } ]
                 , li [ class "label-time" ] [ text <| "登場予想: " ++ npt ]
                 ]
             ]

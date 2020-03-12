@@ -1,4 +1,4 @@
-module Types exposing (Area, FieldBossCycle, PopTime, Region, Timestamp, fieldBossCycleDecoder, nextPopTime, nextPopTimeOnly, nextPopTimePlain, posixToTimestamp, timestampDecoder, timestampToPosix)
+module Types exposing (Area, FieldBossCycle, PopTime, Region, Timestamp, fieldBossCycleDecoder, nextPopTime, nextPopTimePlain, posixToTimestamp, timestampDecoder, timestampToPosix)
 
 import Json.Decode as D exposing (Decoder)
 import Json.Decode.Pipeline as DP
@@ -72,6 +72,7 @@ posixToTimestamp p =
 type alias PopTime =
     { time : Posix
     , remainSeconds : Int
+    , preTime : Posix
     }
 
 
@@ -87,18 +88,19 @@ nextPopTimePlain last intervalMinutes now =
             Time.posixToMillis now
 
         next =
-            nextPopTimeOnly last intervalMinutes now
+            nextPopTimeInternal last intervalMinutes now
 
         remainMillis =
-            Time.posixToMillis next - Time.posixToMillis now
+            Time.posixToMillis next.time - Time.posixToMillis now
     in
-    { time = next
+    { time = next.time
     , remainSeconds = round <| toFloat remainMillis / 1000
+    , preTime = next.preTime
     }
 
 
-nextPopTimeOnly : Posix -> Int -> Posix -> Posix
-nextPopTimeOnly last intervalMinutes now =
+nextPopTimeInternal : Posix -> Int -> Posix -> { time : Posix, preTime : Posix }
+nextPopTimeInternal last intervalMinutes now =
     let
         nowMillis =
             Time.posixToMillis now
@@ -107,7 +109,7 @@ nextPopTimeOnly last intervalMinutes now =
             (1000 * 60 * intervalMinutes) + Time.posixToMillis last
     in
     if nextMillis > nowMillis then
-        Time.millisToPosix nextMillis
+        { time = Time.millisToPosix nextMillis, preTime = last }
 
     else
-        nextPopTimeOnly (Time.millisToPosix nextMillis) intervalMinutes now
+        nextPopTimeInternal (Time.millisToPosix nextMillis) intervalMinutes now
