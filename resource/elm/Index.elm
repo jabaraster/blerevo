@@ -73,6 +73,7 @@ type alias Model =
     , error : Maybe Json.Decode.Error
     , editTarget : Maybe FieldBossCycle
     , defeatedTimeInputValue : String
+    , reportText : Maybe { boss : FieldBossCycle, repop : PopTime }
     }
 
 
@@ -90,9 +91,12 @@ type Msg
     | ChangeDefeatedTimeInputValue String
     | NowDefeated
     | ChangeRemainMinutes FieldBossCycle String
-    | CancelEdit
+    | CloseDialog
     | SaveEdit
     | ReceiveUpdate Value
+    | ShowReportText FieldBossCycle PopTime
+    | HideReportText
+    | SelectReportText
 
 
 init : () -> Url -> Key -> ( Model, Cmd Msg )
@@ -112,6 +116,7 @@ init _ url key =
       , error = Nothing
       , editTarget = Nothing
       , defeatedTimeInputValue = ""
+      , reportText = Nothing
       }
     , Cmd.batch
         [ Task.perform GetZone Time.here
@@ -249,8 +254,8 @@ update msg model =
                         , Cmd.none
                         )
 
-        CancelEdit ->
-            ( { model | editTarget = Nothing }, Cmd.none )
+        CloseDialog ->
+            ( { model | editTarget = Nothing, reportText = Nothing }, Cmd.none )
 
         SaveEdit ->
             case model.editTarget of
@@ -295,6 +300,15 @@ update msg model =
                       }
                     , Cmd.none
                     )
+
+        ShowReportText boss repop ->
+            ( { model | reportText = Just { boss = boss, repop = repop } }, Cmd.none )
+
+        HideReportText ->
+            ( { model | reportText = Nothing }, Cmd.none )
+
+        SelectReportText ->
+            ( model, Ports.requestSelectReportText () )
 
 
 getFilteredCycles : Model -> List FieldBossCycle
@@ -411,13 +425,32 @@ view model =
     in
     { title = title
     , body =
-        case model.editTarget of
-            Nothing ->
+        case ( model.editTarget, model.reportText ) of
+            ( Nothing, Nothing ) ->
                 body
 
-            Just _ ->
-                [ div [ class "container-body-and-backdrop" ] <| body ++ [ div [ class "backdrop", onClick CancelEdit ] [] ] ] ++ viewEditor model
+            ( Just _, _ ) ->
+                [ div [ class "container-body-and-backdrop" ] <| body ++ [ div [ class "backdrop", onClick CloseDialog ] [] ] ] ++ viewEditor model
+
+            ( _, Just report ) ->
+                [ div [ class "container-body-and-backdrop" ] <| body ++ [ div [ class "backdrop", onClick CloseDialog ] [] ] ] ++ viewReportText model.zone report
     }
+
+
+viewReportText : Zone -> { boss : FieldBossCycle, repop : PopTime } -> List (Html Msg)
+viewReportText zone report =
+    let
+        remainMinute =
+            round (toFloat report.repop.remainSeconds / 60)
+
+        val =
+            String.fromInt remainMinute ++ "m" ++ Times.hourMinute { zone = zone, time = report.repop.time }
+    in
+    [ div [ class "editor" ]
+        [ label [] [ text "報告用にコピーどぞ" ]
+        , input [ class "form-control", value val, id "report-text-input", onFocus SelectReportText ] []
+        ]
+    ]
 
 
 viewEditor : Model -> List (Html Msg)
@@ -434,6 +467,7 @@ viewEditor model =
                     , li [] [ fbIcon boss ]
                     , li [ class "label-repop-time" ] [ text <| "再登場時間: " ++ String.fromInt boss.repopIntervalMinutes ++ "分" ]
                     ]
+                , hr [] []
                 , div [ class "form-group" ]
                     [ label [] [ text "討伐時刻で報告" ]
                     , input
@@ -448,8 +482,13 @@ viewEditor model =
                     ]
                 , div [ class "form-group" ]
                     [ label [] [ text "残り時間で報告" ]
-                    , input [ type_ "number", class "form-control", onInput <| ChangeRemainMinutes boss ] []
+                    , div [ class "input-row" ]
+                        [ span [] [ text "あと" ]
+                        , input [ type_ "number", class "form-control", onInput <| ChangeRemainMinutes boss ] []
+                        , span [] [ text "分で登場" ]
+                        ]
                     ]
+                , hr [] []
                 , div [ class "form-group" ]
                     [ label []
                         [ text <|
@@ -463,7 +502,7 @@ viewEditor model =
                         ]
                     ]
                 , div [ class "btn-group" ]
-                    [ button [ class "btn btn-sm btn-light", onClick CancelEdit ] [ text "キャンセル" ]
+                    [ button [ class "btn btn-sm btn-light", onClick CloseDialog ] [ text "キャンセル" ]
                     , button [ class "btn btn-sm btn-primary", onClick SaveEdit ] [ text "保存" ]
                     ]
                 ]
@@ -533,7 +572,12 @@ viewBossTimeline now boss =
                 ]
             ]
         , td [ class "time" ]
-            [ span [ class "time-bar", class <| timeBarColorClass repop.remainSeconds, style "width" <| timeBarWidth repop now.time ]
+            [ span
+                [ class "time-bar"
+                , class <| timeBarColorClass repop.remainSeconds
+                , style "width" <| timeBarWidth repop now.time
+                , onClick <| ShowReportText boss repop
+                ]
                 [ text <| "登場まで" ++ remainTimeText repop.remainSeconds
                 ]
             ]

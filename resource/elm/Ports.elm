@@ -9,3 +9,5 @@ port receiveCycles : (Value -> msg) -> Sub msg
 port requestUpdateDefeatedTime : { server :String, bossIdAtServer:  String, time: Timestamp } -> Cmd msg
 
 port receiveUpdate : (Value -> msg) -> Sub msg
+
+port requestSelectReportText : () -> Cmd msg
