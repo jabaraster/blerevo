@@ -74,7 +74,6 @@ type alias Model =
     , editTarget : Maybe FieldBossCycle
     , defeatedTimeInputValue : String
     , reportText : Maybe { boss : FieldBossCycle, repop : PopTime }
-    , showUpdateHistory : Bool
     }
 
 
@@ -97,7 +96,6 @@ type Msg
     | ReceiveUpdate Value
     | ShowReportText FieldBossCycle PopTime
     | SelectReportText
-    | ShowUpdateHistory
 
 
 init : () -> Url -> Key -> ( Model, Cmd Msg )
@@ -118,7 +116,6 @@ init _ url key =
       , editTarget = Nothing
       , defeatedTimeInputValue = ""
       , reportText = Nothing
-      , showUpdateHistory = False
       }
     , Cmd.batch
         [ Task.perform GetZone Time.here
@@ -260,7 +257,6 @@ update msg model =
             ( { model
                 | editTarget = Nothing
                 , reportText = Nothing
-                , showUpdateHistory = False
               }
             , Cmd.none
             )
@@ -314,9 +310,6 @@ update msg model =
 
         SelectReportText ->
             ( model, Ports.requestSelectReportText () )
-
-        ShowUpdateHistory ->
-            ( { model | showUpdateHistory = True }, Cmd.none )
 
 
 getFilteredCycles : Model -> List FieldBossCycle
@@ -390,7 +383,7 @@ view model =
         body =
             [ header []
                 [ div [ class "title" ]
-                    [ h1 [ onClick ShowUpdateHistory ] [ text "HASTOOL" ]
+                    [ h1 [] [ text "HASTOOL" ]
                     , h2 [] [ text "Blade and Soul Revolution Field Boss Tracker" ]
                     ]
                 ]
@@ -695,7 +688,7 @@ viewUpdateHistory : Html msg
 viewUpdateHistory =
     ul [ class "update-history" ]
         [ li [ class "description" ] [ text "更新履歴" ]
-        , li [ class "description" ] [ text "2020/03/16 この更新履歴を表示するようにしました(ﾟ∀ﾟ　)" ]
+        , li [ class "description" ] [ text "2020/03/16 この更新履歴を表示するようにしました(ﾟ∀ﾟ\u{3000})" ]
         , li [ class "description" ] [ text "2020/03/16 取り急ぎ、忘却の渓谷などの入れ替わっていくFBも表示するようにしました。かっこ悪いのでいつかは改善したいです。" ]
         , li [ class "description" ] [ text "2020/03/13 タイムバーをタップすると他の人に出現を知らせるためのテキストを表示するようにしました。" ]
         ]
