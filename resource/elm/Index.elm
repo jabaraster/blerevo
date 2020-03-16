@@ -74,6 +74,7 @@ type alias Model =
     , editTarget : Maybe FieldBossCycle
     , defeatedTimeInputValue : String
     , reportText : Maybe { boss : FieldBossCycle, repop : PopTime }
+    , showUpdateHistory : Bool
     }
 
 
@@ -95,8 +96,8 @@ type Msg
     | SaveEdit
     | ReceiveUpdate Value
     | ShowReportText FieldBossCycle PopTime
-    | HideReportText
     | SelectReportText
+    | ShowUpdateHistory
 
 
 init : () -> Url -> Key -> ( Model, Cmd Msg )
@@ -109,7 +110,7 @@ init _ url key =
       , page = page
       , zone = Time.utc
       , now = Time.millisToPosix 0
-      , regionFilter = Dict.fromList [ ( "大砂漠", True ), ( "水月平原", True ), ( "白青山脈", True ) ]
+      , regionFilter = Dict.fromList [ ( "大砂漠", True ), ( "水月平原", True ), ( "白青山脈", True ), ( "入れ替わるFB", True ) ]
       , forceFilter = Dict.fromList [ ( "勢力ボス", True ), ( "非勢力ボス", True ) ]
       , sortPolicy = NextPopTimeOrder
       , cycles = Ok []
@@ -117,6 +118,7 @@ init _ url key =
       , editTarget = Nothing
       , defeatedTimeInputValue = ""
       , reportText = Nothing
+      , showUpdateHistory = False
       }
     , Cmd.batch
         [ Task.perform GetZone Time.here
@@ -255,7 +257,13 @@ update msg model =
                         )
 
         CloseDialog ->
-            ( { model | editTarget = Nothing, reportText = Nothing }, Cmd.none )
+            ( { model
+                | editTarget = Nothing
+                , reportText = Nothing
+                , showUpdateHistory = False
+              }
+            , Cmd.none
+            )
 
         SaveEdit ->
             case model.editTarget of
@@ -304,11 +312,11 @@ update msg model =
         ShowReportText boss repop ->
             ( { model | reportText = Just { boss = boss, repop = repop } }, Cmd.none )
 
-        HideReportText ->
-            ( { model | reportText = Nothing }, Cmd.none )
-
         SelectReportText ->
             ( model, Ports.requestSelectReportText () )
+
+        ShowUpdateHistory ->
+            ( { model | showUpdateHistory = True }, Cmd.none )
 
 
 getFilteredCycles : Model -> List FieldBossCycle
@@ -382,7 +390,7 @@ view model =
         body =
             [ header []
                 [ div [ class "title" ]
-                    [ h1 [] [ text "HASTOOL" ]
+                    [ h1 [ onClick ShowUpdateHistory ] [ text "HASTOOL" ]
                     , h2 [] [ text "Blade and Soul Revolution Field Boss Tracker" ]
                     ]
                 ]
@@ -392,6 +400,7 @@ view model =
                     [ li [] [ filterText "大砂漠" model.regionFilter ToggleRegionFilter ]
                     , li [] [ filterText "水月平原" model.regionFilter ToggleRegionFilter ]
                     , li [] [ filterText "白青山脈" model.regionFilter ToggleRegionFilter ]
+                    , li [] [ filterText "入れ替わるFB" model.regionFilter ToggleRegionFilter ]
                     ]
                 ]
             , div [ class "filter-container" ]
@@ -420,6 +429,7 @@ view model =
                 [ h5 [] [ text "Powered by Haskell at ケヤキ server" ]
                 , p [ class "description" ] [ text "ご要望・ご意見はささ下さい" ]
                 , p [] [ text <| Maybe.withDefault "" <| Maybe.map Json.Decode.errorToString model.error ]
+                , viewUpdateHistory
                 ]
             ]
     in
@@ -430,11 +440,16 @@ view model =
                 body
 
             ( Just _, _ ) ->
-                [ div [ class "container-body-and-backdrop" ] <| body ++ [ div [ class "backdrop", onClick CloseDialog ] [] ] ] ++ viewEditor model
+                viewInBackdrop body <| viewEditor model
 
             ( _, Just report ) ->
-                [ div [ class "container-body-and-backdrop" ] <| body ++ [ div [ class "backdrop", onClick CloseDialog ] [] ] ] ++ viewReportText model.zone report
+                viewInBackdrop body <| viewReportText model.zone report
     }
+
+
+viewInBackdrop : List (Html Msg) -> List (Html Msg) -> List (Html Msg)
+viewInBackdrop body inner =
+    [ div [ class "container-body-and-backdrop" ] <| body ++ [ div [ class "backdrop", onClick CloseDialog ] [] ] ] ++ inner
 
 
 viewReportText : Zone -> { boss : FieldBossCycle, repop : PopTime } -> List (Html Msg)
@@ -446,7 +461,7 @@ viewReportText zone report =
         val =
             String.fromInt remainMinute ++ "m" ++ Times.hourMinute { zone = zone, time = report.repop.time }
     in
-    [ div [ class "editor" ]
+    [ div [ class "dialog-contents" ]
         [ label [] [ text "報告用にコピーどぞ" ]
         , input [ class "form-control", value val, id "report-text-input", onFocus SelectReportText ] []
         ]
@@ -460,7 +475,7 @@ viewEditor model =
             []
 
         Just boss ->
-            [ div [ class "editor" ]
+            [ div [ class "dialog-contents" ]
                 [ p [ class "description" ] [ text "討伐時刻の報告へのご協力ありがとうございます。時刻はだいたいで構いません。なお報告は、この画面を見ている他の方にも反映されます。" ]
                 , ul []
                     [ li [] [ span [ class "label-boss-name", style "color" (colorForRegion boss.region) ] [ text boss.name ] ]
@@ -661,6 +676,9 @@ colorForRegion r =
         "白青山脈" ->
             "#696969"
 
+        "入れ替わるFB" ->
+            "#800000"
+
         _ ->
             "#000000"
 
@@ -670,4 +688,14 @@ checkbox labelText checked_ handler =
     label [ class "checkbox", onClick handler ]
         [ span [ classList [ ( "fas fa-check", True ), ( "checked", checked_ ), ( "unchecked", not checked_ ) ] ] []
         , span [] [ text labelText ]
+        ]
+
+
+viewUpdateHistory : Html msg
+viewUpdateHistory =
+    ul [ class "update-history" ]
+        [ li [ class "description" ] [ text "更新履歴" ]
+        , li [ class "description" ] [ text "2020/03/16 この更新履歴を表示するようにしました(ﾟ∀ﾟ　)" ]
+        , li [ class "description" ] [ text "2020/03/16 取り急ぎ、忘却の渓谷などの入れ替わっていくFBも表示するようにしました。かっこ悪いのでいつかは改善したいです。" ]
+        , li [ class "description" ] [ text "2020/03/13 タイムバーをタップすると他の人に出現を知らせるためのテキストを表示するようにしました。" ]
         ]
