@@ -36,31 +36,6 @@ type Page
     = CyclePage String
 
 
-type SortPolicy
-    = NaturalOrder
-    | NextPopTimeOrder
-
-
-stringToSortPolicy : String -> SortPolicy
-stringToSortPolicy s =
-    case s of
-        "NaturalOrder" ->
-            NaturalOrder
-
-        _ ->
-            NextPopTimeOrder
-
-
-sortPolicyToString : SortPolicy -> String
-sortPolicyToString policy =
-    case policy of
-        NaturalOrder ->
-            "NaturalOrder"
-
-        NextPopTimeOrder ->
-            "NextPopTimeOrder"
-
-
 type alias Model =
     { key : Key
     , page : Page
@@ -96,6 +71,7 @@ type Msg
     | ReceiveUpdate Value
     | ShowReportText FieldBossCycle PopTime
     | SelectReportText
+    | ReceiveViewOption Value
 
 
 init : () -> Url -> Key -> ( Model, Cmd Msg )
@@ -120,6 +96,7 @@ init _ url key =
     , Cmd.batch
         [ Task.perform GetZone Time.here
         , Ports.requestLoadCycles <| pageToServer page
+        , Ports.requestGetViewOption ()
         ]
     )
 
@@ -137,6 +114,7 @@ subscriptions _ =
         [ Time.every 1000 GetNow
         , Ports.receiveCycles ReceiveCycles
         , Ports.receiveUpdate ReceiveUpdate
+        , Ports.receiveViewOption ReceiveViewOption
         ]
 
 
@@ -182,31 +160,45 @@ update msg model =
             in
             ( { model | now = time }, Cmd.none )
 
-        ToggleRegionFilter region ->
-            ( { model
-                | regionFilter =
-                    Dict.update region
-                        (\mv -> Maybe.map not mv |> Maybe.withDefault True |> Just)
-                        model.regionFilter
-              }
-            , Cmd.none
-            )
-
-        ToggleForceFilter f ->
-            ( { model
-                | forceFilter =
-                    Dict.update f
-                        (\mv -> Maybe.map not mv |> Maybe.withDefault True |> Just)
-                        model.forceFilter
-              }
-            , Cmd.none
-            )
-
         ReceiveCycles v ->
             ( { model | cycles = Json.Decode.decodeValue (Json.Decode.list Types.fieldBossCycleDecoder) v }, Cmd.none )
 
+        ToggleRegionFilter region ->
+            let
+                newModel =
+                    { model
+                        | regionFilter =
+                            Dict.update region
+                                (\mv -> Maybe.map not mv |> Maybe.withDefault True |> Just)
+                                model.regionFilter
+                    }
+            in
+            ( newModel
+            , Ports.requestSaveViewOption <| modelToViewOption newModel
+            )
+
+        ToggleForceFilter f ->
+            let
+                newModel =
+                    { model
+                        | forceFilter =
+                            Dict.update f
+                                (\mv -> Maybe.map not mv |> Maybe.withDefault True |> Just)
+                                model.forceFilter
+                    }
+            in
+            ( newModel
+            , Ports.requestSaveViewOption <| modelToViewOption newModel
+            )
+
         ChangeSortPolicy policy ->
-            ( { model | sortPolicy = policy }, Cmd.none )
+            let
+                newModel =
+                    { model | sortPolicy = policy }
+            in
+            ( newModel
+            , Ports.requestSaveViewOption <| modelToViewOption newModel
+            )
 
         StartEdit boss ->
             let
@@ -310,6 +302,39 @@ update msg model =
 
         SelectReportText ->
             ( model, Ports.requestSelectReportText () )
+
+        ReceiveViewOption v ->
+            case Json.Decode.decodeValue Types.viewOptionDecoder v of
+                Err e ->
+                    ( { model | error = Just e }, Cmd.none )
+
+                Ok viewOption ->
+                    ( applyViewOption viewOption model, Cmd.none )
+
+
+modelToViewOption : Model -> ViewOption
+modelToViewOption model =
+    let
+        mapper =
+            \( k, v ) -> { name = k, toggle = v }
+    in
+    { regionFilter = List.map mapper <| Dict.toList model.regionFilter
+    , forceFilter = List.map mapper <| Dict.toList model.forceFilter
+    , sortPolicy = sortPolicyToString model.sortPolicy
+    }
+
+
+applyViewOption : ViewOption -> Model -> Model
+applyViewOption vo model =
+    let
+        mapper =
+            \ts -> ( ts.name, ts.toggle )
+    in
+    { model
+        | regionFilter = Dict.fromList <| List.map mapper vo.regionFilter
+        , forceFilter = Dict.fromList <| List.map mapper vo.forceFilter
+        , sortPolicy = stringToSortPolicy vo.sortPolicy
+    }
 
 
 getFilteredCycles : Model -> List FieldBossCycle
@@ -688,6 +713,7 @@ viewUpdateHistory : Html msg
 viewUpdateHistory =
     ul [ class "update-history" ]
         [ li [ class "description" ] [ text "更新履歴" ]
+        , li [ class "description" ] [ text "2020/03/17 ページをリロードしてもフィルタと並び順が保存されるようにしました。" ]
         , li [ class "description" ] [ text "2020/03/16 この更新履歴を表示するようにしました(ﾟ∀ﾟ\u{3000})" ]
         , li [ class "description" ] [ text "2020/03/16 取り急ぎ、忘却の渓谷などの入れ替わっていくFBも表示するようにしました。かっこ悪いのでいつかは改善したいです。" ]
         , li [ class "description" ] [ text "2020/03/13 タイムバーをタップすると他の人に出現を知らせるためのテキストを表示するようにしました。" ]

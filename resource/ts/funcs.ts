@@ -54,3 +54,32 @@ function docToBoss(doc): FieldBossCycle {
     ret.serverId = doc.id;
     return ret;
 }
+
+export function saveViewOption(viewOption: object) {
+    if (!window.localStorage) {
+        return;
+    }
+    window.localStorage.setItem("viewOption", JSON.stringify(viewOption));
+}
+
+interface ViewOptionResult {
+    exists: boolean;
+    result: object;
+}
+export function getViewOption(): ViewOptionResult {
+    if (!window.localStorage) {
+        return;
+    }
+    const result = window.localStorage.getItem("viewOption");
+    if (result) {
+        return {
+            exists: true,
+            result: JSON.parse(result),
+        };
+    } else {
+        return {
+            exists: false,
+            result: null,
+        }
+    }
+}

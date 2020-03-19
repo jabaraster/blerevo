@@ -1,4 +1,4 @@
-module Types exposing (Area, FieldBossCycle, PopTime, Region, Timestamp, fieldBossCycleDecoder, nextPopTime, nextPopTimePlain, posixToTimestamp, timestampDecoder, timestampToPosix)
+module Types exposing (..)
 
 import Json.Decode as D exposing (Decoder)
 import Json.Decode.Pipeline as DP
@@ -113,3 +113,56 @@ nextPopTimeInternal last intervalMinutes now =
 
     else
         nextPopTimeInternal (Time.millisToPosix nextMillis) intervalMinutes now
+
+
+type alias ToggleState =
+    { name : String
+    , toggle : Bool
+    }
+
+
+toggleStateDecoder : Decoder ToggleState
+toggleStateDecoder =
+    D.map2 ToggleState
+        (D.field "name" D.string)
+        (D.field "toggle" D.bool)
+
+
+type alias ViewOption =
+    { regionFilter : List ToggleState
+    , forceFilter : List ToggleState
+    , sortPolicy : String
+    }
+
+
+viewOptionDecoder : Decoder ViewOption
+viewOptionDecoder =
+    D.map3 ViewOption
+        (D.field "regionFilter" <| D.list toggleStateDecoder)
+        (D.field "forceFilter" <| D.list toggleStateDecoder)
+        (D.field "sortPolicy" D.string)
+
+
+type SortPolicy
+    = NaturalOrder
+    | NextPopTimeOrder
+
+
+stringToSortPolicy : String -> SortPolicy
+stringToSortPolicy s =
+    case s of
+        "NaturalOrder" ->
+            NaturalOrder
+
+        _ ->
+            NextPopTimeOrder
+
+
+sortPolicyToString : SortPolicy -> String
+sortPolicyToString policy =
+    case policy of
+        NaturalOrder ->
+            "NaturalOrder"
+
+        NextPopTimeOrder ->
+            "NextPopTimeOrder"
