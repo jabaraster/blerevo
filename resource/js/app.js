@@ -5,8 +5,6 @@ import * as Funcs from "../ts/funcs";
 var app = Elm.Index.init();
 var ports = app.ports;
 
-console.log(ports);
-
 ports.requestSelectReportText.subscribe(_ => {
   const e = document.getElementById("report-text-input")
   if (e) e.select();
