@@ -69,3 +69,4 @@ elm/dist/
 resource/.cache/
 resource/dist/
 resource/elm-stuff/
+functions/env.sh
