@@ -1,4 +1,4 @@
-module Index exposing (..)
+module Index exposing (Model, Msg(..), Page(..), applyViewOption, bossComparator, checkbox, circle, colorForRegion, defaultServer, fbIcon, filterText, forceLabel, forceText, getFilteredCycles, init, inputErrorClass, main, modelToViewOption, pageToServer, parseUrl, remainTimeText, subscriptions, timeBarColorClass, timeBarWidth, update, updateDictionary, view, viewBossTimeline, viewEditor, viewInBackdrop, viewReportText, viewUpdateHistory, zonedNow)
 
 import Browser exposing (Document, UrlRequest)
 import Browser.Navigation as Nav exposing (Key)
@@ -43,11 +43,13 @@ type alias Model =
     , now : Posix
     , regionFilter : Dict Region Bool
     , forceFilter : Dict String Bool
+    , reliabilityFilter : Dict String Bool
     , sortPolicy : SortPolicy
     , cycles : Result Json.Decode.Error (List FieldBossCycle)
     , error : Maybe Json.Decode.Error
     , editTarget : Maybe FieldBossCycle
     , defeatedTimeInputValue : String
+    , remainMinuteInputValue : String
     , reportText : Maybe { boss : FieldBossCycle, repop : PopTime }
     }
 
@@ -60,6 +62,7 @@ type Msg
     | GetNow Posix
     | ToggleRegionFilter Region
     | ToggleForceFilter String
+    | ToggleReliabilityFilter String
     | ReceiveCycles Value
     | ChangeSortPolicy SortPolicy
     | StartEdit FieldBossCycle
@@ -86,11 +89,13 @@ init _ url key =
       , now = Time.millisToPosix 0
       , regionFilter = Dict.fromList [ ( "大砂漠", True ), ( "水月平原", True ), ( "白青山脈", True ), ( "入れ替わるFB", True ) ]
       , forceFilter = Dict.fromList [ ( "勢力ボス", True ), ( "非勢力ボス", True ) ]
+      , reliabilityFilter = Dict.fromList [ ( "信憑性あり", True ), ( "信憑性なし", True ) ]
       , sortPolicy = NextPopTimeOrder
       , cycles = Ok []
       , error = Nothing
       , editTarget = Nothing
       , defeatedTimeInputValue = ""
+      , remainMinuteInputValue = ""
       , reportText = Nothing
       }
     , Cmd.batch
@@ -166,12 +171,7 @@ update msg model =
         ToggleRegionFilter region ->
             let
                 newModel =
-                    { model
-                        | regionFilter =
-                            Dict.update region
-                                (\mv -> Maybe.map not mv |> Maybe.withDefault True |> Just)
-                                model.regionFilter
-                    }
+                    { model | regionFilter = updateDictionary region model.regionFilter }
             in
             ( newModel
             , Ports.requestSaveViewOption <| modelToViewOption newModel
@@ -180,12 +180,16 @@ update msg model =
         ToggleForceFilter f ->
             let
                 newModel =
-                    { model
-                        | forceFilter =
-                            Dict.update f
-                                (\mv -> Maybe.map not mv |> Maybe.withDefault True |> Just)
-                                model.forceFilter
-                    }
+                    { model | forceFilter = updateDictionary f model.forceFilter }
+            in
+            ( newModel
+            , Ports.requestSaveViewOption <| modelToViewOption newModel
+            )
+
+        ToggleReliabilityFilter r ->
+            let
+                newModel =
+                    { model | reliabilityFilter = updateDictionary r model.reliabilityFilter }
             in
             ( newModel
             , Ports.requestSaveViewOption <| modelToViewOption newModel
@@ -213,11 +217,8 @@ update msg model =
             )
 
         ChangeDefeatedTimeInputValue s ->
-            ( { model
-                | defeatedTimeInputValue = s
-              }
-            , Cmd.none
-            )
+            ( { model | defeatedTimeInputValue = s }, Cmd.none )
+
 
         NowDefeated ->
             ( { model | defeatedTimeInputValue = Times.hourMinute <| zonedNow model }
@@ -227,11 +228,11 @@ update msg model =
         ChangeRemainMinutes boss s ->
             case String.toInt s of
                 Nothing ->
-                    ( model, Cmd.none )
+                    ( { model | remainMinuteInputValue = s }, Cmd.none )
 
                 Just i ->
                     if i <= 0 then
-                        ( model, Cmd.none )
+                        ( { model | remainMinuteInputValue = s }, Cmd.none )
 
                     else
                         let
@@ -241,7 +242,9 @@ update msg model =
                             ldt =
                                 Times.addMinute (negate boss.repopIntervalMinutes) repopTime
                         in
-                        ( { model | defeatedTimeInputValue = Times.hourMinute ldt }
+                        ( { model | defeatedTimeInputValue = Times.hourMinute ldt
+                                    , remainMinuteInputValue = s
+                                    }
                         , Cmd.none
                         )
 
@@ -312,6 +315,12 @@ update msg model =
                     ( applyViewOption viewOption model, Cmd.none )
 
 
+updateDictionary label dict =
+    Dict.update label
+        (\mv -> Maybe.map not mv |> Maybe.withDefault True |> Just)
+        dict
+
+
 modelToViewOption : Model -> ViewOption
 modelToViewOption model =
     let
@@ -320,6 +329,7 @@ modelToViewOption model =
     in
     { regionFilter = List.map mapper <| Dict.toList model.regionFilter
     , forceFilter = List.map mapper <| Dict.toList model.forceFilter
+    , reliabilityFilter = List.map mapper <| Dict.toList model.reliabilityFilter
     , sortPolicy = sortPolicyToString model.sortPolicy
     }
 
@@ -333,6 +343,7 @@ applyViewOption vo model =
     { model
         | regionFilter = Dict.fromList <| List.map mapper vo.regionFilter
         , forceFilter = Dict.fromList <| List.map mapper vo.forceFilter
+        , reliabilityFilter = Dict.fromList <| List.map mapper vo.reliabilityFilter
         , sortPolicy = stringToSortPolicy vo.sortPolicy
     }
 
@@ -349,9 +360,13 @@ getFilteredCycles model =
                 forceFilter =
                     Dict.get (forceText boss.force) model.forceFilter
                         |> Maybe.withDefault True
+
+                reliabilityFilter =
+                    Dict.get (reliabilityText boss.force) model.reliabilityFilter
+                        |> Maybe.withDefault True
             in
-            case ( regionFilter, forceFilter ) of
-                ( True, True ) ->
+            case ( regionFilter, forceFilter, reliabilityFilter ) of
+                ( True, True, True ) ->
                     True
 
                 _ ->
@@ -368,6 +383,15 @@ forceText b =
 
     else
         "非勢力ボス"
+
+
+reliabilityText : Bool -> String
+reliabilityText b =
+    if b then
+        "信憑性あり"
+
+    else
+        "信憑性なし"
 
 
 zonedNow : Model -> ZonedTime
@@ -425,6 +449,12 @@ view model =
                 [ ul [ class "filter region" ]
                     [ li [] [ filterText "勢力ボス" model.forceFilter ToggleForceFilter ]
                     , li [] [ filterText "非勢力ボス" model.forceFilter ToggleForceFilter ]
+                    ]
+                ]
+            , div [ class "filter-container" ]
+                [ ul [ class "filter region" ]
+                    [ li [] [ filterText "信憑性あり" model.reliabilityFilter ToggleReliabilityFilter ]
+                    , li [] [ filterText "信憑性なし" model.reliabilityFilter ToggleReliabilityFilter ]
                     ]
                 ]
             , div [ class "filter-container" ]
@@ -517,7 +547,11 @@ viewEditor model =
                     [ label [] [ text "残り時間で報告" ]
                     , div [ class "input-row" ]
                         [ span [] [ text "あと" ]
-                        , input [ type_ "number", class "form-control", onInput <| ChangeRemainMinutes boss ] []
+                        , input [ type_ "number"
+                                , class "form-control"
+                                , value model.remainMinuteInputValue
+                                , onInput <| ChangeRemainMinutes boss
+                                ] []
                         , span [] [ text "分で登場" ]
                         ]
                     ]
@@ -583,7 +617,14 @@ viewBossTimeline now boss =
         repop =
             Types.nextPopTime boss now.time
     in
-    tr []
+    tr
+        [ class <|
+            if boss.reliability then
+                "reliable"
+
+            else
+                "unreliable"
+        ]
         [ td [ class "boss-info", onClick <| StartEdit boss ]
             [ ul []
                 [ li [] [ span [ class "label-boss-name", style "color" (colorForRegion boss.region) ] [ text boss.name ] ]

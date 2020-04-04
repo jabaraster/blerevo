@@ -1,4 +1,4 @@
-module Types exposing (..)
+module Types exposing (Area, FieldBossCycle, PopTime, Region, SortPolicy(..), Timestamp, ToggleState, ViewOption, fieldBossCycleDecoder, nextPopTime, nextPopTimeInternal, nextPopTimePlain, posixToTimestamp, sortPolicyToString, stringToSortPolicy, timestampDecoder, timestampToPosix, toggleStateDecoder, viewOptionDecoder)
 
 import Json.Decode as D exposing (Decoder)
 import Json.Decode.Pipeline as DP
@@ -34,6 +34,7 @@ type alias FieldBossCycle =
     , repopIntervalMinutes : Int
     , lastDefeatedTime : Posix
     , sortOrder : Int
+    , reliability : Bool
     }
 
 
@@ -49,6 +50,7 @@ fieldBossCycleDecoder =
         |> DP.required "repopIntervalMinutes" D.int
         |> DP.required "lastDefeatedTime" (timestampDecoder |> D.andThen (D.succeed << timestampToPosix))
         |> DP.required "sortOrder" D.int
+        |> DP.optional "reliability" D.bool False
 
 
 timestampToPosix : Timestamp -> Posix
@@ -131,15 +133,27 @@ toggleStateDecoder =
 type alias ViewOption =
     { regionFilter : List ToggleState
     , forceFilter : List ToggleState
+    , reliabilityFilter : List ToggleState
     , sortPolicy : String
     }
 
 
 viewOptionDecoder : Decoder ViewOption
 viewOptionDecoder =
-    D.map3 ViewOption
+    D.map4 ViewOption
         (D.field "regionFilter" <| D.list toggleStateDecoder)
         (D.field "forceFilter" <| D.list toggleStateDecoder)
+        (D.andThen
+            (\m ->
+                case m of
+                    Nothing ->
+                        D.succeed [ { name = "信憑性あり", toggle = True }, { name = "信憑性なし", toggle = True } ]
+
+                    Just l ->
+                        D.succeed l
+            )
+            (D.maybe <| D.field "reliabilityFilter" <| D.list toggleStateDecoder)
+        )
         (D.field "sortPolicy" D.string)
 
 
