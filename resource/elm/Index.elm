@@ -160,10 +160,47 @@ update msg model =
 
         GetNow time ->
             let
-                now =
-                    model.now
+                lostReliability =
+                    List.filter
+                        (\boss ->
+                            let
+                                nextPre = Types.nextPopTimePlain boss.lastDefeatedTime boss.repopIntervalMinutes model.now
+                                nextPost = Types.nextPopTimePlain boss.lastDefeatedTime boss.repopIntervalMinutes time
+                                diff = 
+                                    Time.Extra.diff Second model.zone nextPre.time nextPost.time
+                            in
+                            boss.reliability && (diff /= 0)
+                        )
+                    <|
+                        Result.withDefault [] model.cycles
             in
-            ( { model | now = time }, Cmd.none )
+            ( { model
+                | now = time
+                , cycles =
+                    Result.map
+                        (List.map
+                            (\boss ->
+                                if List.member boss lostReliability then
+                                    { boss | reliability = False }
+
+                                else
+                                    boss
+                            )
+                        )
+                        model.cycles
+              }
+            , Cmd.batch <|
+                List.map
+                    (\boss ->
+                        Ports.requestUpdateDefeatedTime
+                            { server = pageToServer model.page
+                            , bossIdAtServer = boss.serverId
+                            , time = Types.posixToTimestamp boss.lastDefeatedTime
+                            , reliability = False
+                            }
+                    )
+                    lostReliability
+            )
 
         ReceiveCycles v ->
             ( { model | cycles = Json.Decode.decodeValue (Json.Decode.list Types.fieldBossCycleDecoder) v }, Cmd.none )
@@ -212,13 +249,13 @@ update msg model =
             ( { model
                 | editTarget = Just boss
                 , defeatedTimeInputValue = Times.hourMinute { zone = model.zone, time = val }
+                , remainMinuteInputValue = ""
               }
             , Cmd.none
             )
 
         ChangeDefeatedTimeInputValue s ->
             ( { model | defeatedTimeInputValue = s }, Cmd.none )
-
 
         NowDefeated ->
             ( { model | defeatedTimeInputValue = Times.hourMinute <| zonedNow model }
@@ -242,9 +279,10 @@ update msg model =
                             ldt =
                                 Times.addMinute (negate boss.repopIntervalMinutes) repopTime
                         in
-                        ( { model | defeatedTimeInputValue = Times.hourMinute ldt
-                                    , remainMinuteInputValue = s
-                                    }
+                        ( { model
+                            | defeatedTimeInputValue = Times.hourMinute ldt
+                            , remainMinuteInputValue = s
+                          }
                         , Cmd.none
                         )
 
@@ -267,12 +305,19 @@ update msg model =
                             ( model, Cmd.none )
 
                         Just t ->
+                            let
+                                reliability =
+                                    getReliability boss model.remainMinuteInputValue
+
+                                newBoss =
+                                    { boss | lastDefeatedTime = t, reliability = reliability }
+                            in
                             ( { model
                                 | editTarget = Nothing
                                 , cycles =
                                     Result.map
                                         (\list ->
-                                            List.Extra.setIf (\elm -> elm.id == boss.id) { boss | lastDefeatedTime = t } list
+                                            List.Extra.setIf (\elm -> elm.id == boss.id) newBoss list
                                         )
                                         model.cycles
                               }
@@ -280,6 +325,7 @@ update msg model =
                                 { server = pageToServer model.page
                                 , bossIdAtServer = boss.serverId
                                 , time = Types.posixToTimestamp t
+                                , reliability = reliability
                                 }
                             )
 
@@ -313,6 +359,25 @@ update msg model =
 
                 Ok viewOption ->
                     ( applyViewOption viewOption model, Cmd.none )
+
+
+getReliability : FieldBossCycle -> String -> Bool
+getReliability boss remainMinuteInputValue =
+    case remainMinuteInputValue of
+        "" ->
+            True
+
+        _ ->
+            case String.toInt remainMinuteInputValue of
+                Nothing ->
+                    False
+
+                Just remainMinute ->
+                    if boss.repopIntervalMinutes <= 60 then
+                        remainMinute < 30
+
+                    else
+                        remainMinute < 60
 
 
 updateDictionary label dict =
@@ -362,7 +427,7 @@ getFilteredCycles model =
                         |> Maybe.withDefault True
 
                 reliabilityFilter =
-                    Dict.get (reliabilityText boss.force) model.reliabilityFilter
+                    Dict.get (reliabilityText boss.reliability) model.reliabilityFilter
                         |> Maybe.withDefault True
             in
             case ( regionFilter, forceFilter, reliabilityFilter ) of
@@ -547,11 +612,13 @@ viewEditor model =
                     [ label [] [ text "残り時間で報告" ]
                     , div [ class "input-row" ]
                         [ span [] [ text "あと" ]
-                        , input [ type_ "number"
-                                , class "form-control"
-                                , value model.remainMinuteInputValue
-                                , onInput <| ChangeRemainMinutes boss
-                                ] []
+                        , input
+                            [ type_ "number"
+                            , class "form-control"
+                            , value model.remainMinuteInputValue
+                            , onInput <| ChangeRemainMinutes boss
+                            ]
+                            []
                         , span [] [ text "分で登場" ]
                         ]
                     ]
@@ -754,6 +821,7 @@ viewUpdateHistory : Html msg
 viewUpdateHistory =
     ul [ class "update-history" ]
         [ li [ class "description" ] [ text "更新履歴" ]
+        , li [ class "description" ] [ text "2020/04/05 試験的に、信憑性を表示するようにしました。登場予想が大きくずれていないと思われるフィルボは背景が赤になります。より詳しく説明すれば「1. どなたがが前回討伐時刻を報告した」「2. どなたがが残り何分で登場するかを明確に報告した」の２つの場合に、信憑性ありと判断されます。討伐予想時刻を過ぎたら、信憑性なしになります。" ]
         , li [ class "description" ] [ text "2020/03/27 事情があり通知機能を切っています！ごめんなさい" ]
         , li [ class "description" ] [ text "2020/03/21 フィルボの登場が迫ると通知する機能を追加しました。使ってみたい方はささでご連絡をお願いしますm(_ _)m" ]
         , li [ class "description" ] [ text "2020/03/17 ページをリロードしてもフィルタと並び順が保存されるようにしました。" ]

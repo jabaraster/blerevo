@@ -1,4 +1,4 @@
-module Types exposing (Area, FieldBossCycle, PopTime, Region, SortPolicy(..), Timestamp, ToggleState, ViewOption, fieldBossCycleDecoder, nextPopTime, nextPopTimeInternal, nextPopTimePlain, posixToTimestamp, sortPolicyToString, stringToSortPolicy, timestampDecoder, timestampToPosix, toggleStateDecoder, viewOptionDecoder)
+module Types exposing (Area, FieldBossCycle, PopTime, Region, SortPolicy(..), Timestamp, ToggleState, ViewOption, fieldBossCycleDecoder, nextPopTime, nextPopTimePlain, posixToTimestamp, sortPolicyToString, stringToSortPolicy, timestampDecoder, timestampToPosix, toggleStateDecoder, viewOptionDecoder)
 
 import Json.Decode as D exposing (Decoder)
 import Json.Decode.Pipeline as DP

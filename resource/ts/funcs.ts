@@ -24,10 +24,11 @@ Firebase.initializeApp({
 });
 const firestore = Firebase.firestore();
 
-export async function updateDefeatedTime(server: string, bossIdAtServer: string, time: Timestamp): Promise<void> {
+export async function updateDefeatedTime(server: string, bossIdAtServer: string, time: Timestamp, reliability: boolean): Promise<void> {
     const doc = await firestore.doc(`${COLLECTION_ID}/${server}/cycles/${bossIdAtServer}`)
     await doc.update({
         lastDefeatedTime: new Date(time.seconds * 1000),
+        reliability,
     })
 }
 
