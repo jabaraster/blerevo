@@ -10,6 +10,7 @@ import Json.Decode
 import Json.Encode exposing (Value)
 import List.Extra
 import Ports
+import Set exposing (Set)
 import Task
 import TestData
 import Time exposing (Posix, Zone)
@@ -44,6 +45,8 @@ type alias Model =
     , regionFilter : Dict Region Bool
     , forceFilter : Dict String Bool
     , reliabilityFilter : Dict String Bool
+    , customFilterApplying : Bool
+    , customFilter : Set FieldBossId
     , sortPolicy : SortPolicy
     , cycles : Result Json.Decode.Error (List FieldBossCycle)
     , error : Maybe Json.Decode.Error
@@ -51,6 +54,7 @@ type alias Model =
     , defeatedTimeInputValue : String
     , remainMinuteInputValue : String
     , reportText : Maybe { boss : FieldBossCycle, repop : PopTime }
+    , editCustomFilter : Maybe (Set FieldBossId)
     }
 
 
@@ -63,6 +67,8 @@ type Msg
     | ToggleRegionFilter Region
     | ToggleForceFilter String
     | ToggleReliabilityFilter String
+    | ToggleCustomFilterApplying
+    | ToggleCustomFilterTarget FieldBossCycle
     | ReceiveCycles Value
     | ChangeSortPolicy SortPolicy
     | StartEdit FieldBossCycle
@@ -75,6 +81,8 @@ type Msg
     | ShowReportText FieldBossCycle PopTime
     | SelectReportText
     | ReceiveViewOption Value
+    | ShowCustomFilterEditor
+    | SaveCustomFilter
 
 
 init : () -> Url -> Key -> ( Model, Cmd Msg )
@@ -90,6 +98,8 @@ init _ url key =
       , regionFilter = Dict.fromList [ ( "大砂漠", True ), ( "水月平原", True ), ( "白青山脈", True ), ( "入れ替わるFB", True ) ]
       , forceFilter = Dict.fromList [ ( "勢力ボス", True ), ( "非勢力ボス", True ) ]
       , reliabilityFilter = Dict.fromList [ ( "信憑性あり", True ), ( "信憑性なし", True ) ]
+      , customFilterApplying = False
+      , customFilter = Set.empty
       , sortPolicy = NextPopTimeOrder
       , cycles = Ok []
       , error = Nothing
@@ -97,6 +107,7 @@ init _ url key =
       , defeatedTimeInputValue = ""
       , remainMinuteInputValue = ""
       , reportText = Nothing
+      , editCustomFilter = Nothing
       }
     , Cmd.batch
         [ Task.perform GetZone Time.here
@@ -164,9 +175,13 @@ update msg model =
                     List.filter
                         (\boss ->
                             let
-                                nextPre = Types.nextPopTimePlain boss.lastDefeatedTime boss.repopIntervalMinutes model.now
-                                nextPost = Types.nextPopTimePlain boss.lastDefeatedTime boss.repopIntervalMinutes time
-                                diff = 
+                                nextPre =
+                                    Types.nextPopTimePlain boss.lastDefeatedTime boss.repopIntervalMinutes model.now
+
+                                nextPost =
+                                    Types.nextPopTimePlain boss.lastDefeatedTime boss.repopIntervalMinutes time
+
+                                diff =
                                     Time.Extra.diff Second model.zone nextPre.time nextPost.time
                             in
                             boss.reliability && (diff /= 0)
@@ -232,6 +247,45 @@ update msg model =
             , Ports.requestSaveViewOption <| modelToViewOption newModel
             )
 
+        ToggleCustomFilterApplying ->
+            let
+                newApplying =
+                    not model.customFilterApplying
+
+                newModel =
+                    { model
+                        | customFilterApplying = newApplying
+                        , editCustomFilter =
+                            if newApplying && Set.isEmpty model.customFilter then
+                                Just <| Set.empty
+
+                            else
+                                Nothing
+                    }
+            in
+            ( newModel
+            , Ports.requestSaveViewOption <| modelToViewOption newModel
+            )
+
+        ToggleCustomFilterTarget boss ->
+            ( { model
+                | editCustomFilter =
+                    Maybe.map
+                        (\cf ->
+                            if Set.member boss.id cf then
+                                Set.remove boss.id cf
+
+                            else
+                                Set.insert boss.id cf
+                        )
+                        model.editCustomFilter
+              }
+            , Cmd.none
+            )
+
+        ShowCustomFilterEditor ->
+            ( { model | editCustomFilter = Just model.customFilter }, Cmd.none )
+
         ChangeSortPolicy policy ->
             let
                 newModel =
@@ -290,6 +344,13 @@ update msg model =
             ( { model
                 | editTarget = Nothing
                 , reportText = Nothing
+                , editCustomFilter = Nothing
+                , customFilterApplying =
+                    if Set.isEmpty model.customFilter then
+                        False
+
+                    else
+                        model.customFilterApplying
               }
             , Cmd.none
             )
@@ -360,6 +421,22 @@ update msg model =
                 Ok viewOption ->
                     ( applyViewOption viewOption model, Cmd.none )
 
+        SaveCustomFilter ->
+            let
+                newApplying =
+                    not model.customFilterApplying
+
+                newModel =
+                    { model
+                        | customFilterApplying = True
+                        , customFilter = Maybe.withDefault Set.empty model.editCustomFilter
+                        , editCustomFilter = Nothing
+                    }
+            in
+            ( newModel
+            , Ports.requestSaveViewOption <| modelToViewOption newModel
+            )
+
 
 getReliability : FieldBossCycle -> String -> Bool
 getReliability boss remainMinuteInputValue =
@@ -395,6 +472,7 @@ modelToViewOption model =
     { regionFilter = List.map mapper <| Dict.toList model.regionFilter
     , forceFilter = List.map mapper <| Dict.toList model.forceFilter
     , reliabilityFilter = List.map mapper <| Dict.toList model.reliabilityFilter
+    , customFilter = Set.toList model.customFilter
     , sortPolicy = sortPolicyToString model.sortPolicy
     }
 
@@ -409,36 +487,41 @@ applyViewOption vo model =
         | regionFilter = Dict.fromList <| List.map mapper vo.regionFilter
         , forceFilter = Dict.fromList <| List.map mapper vo.forceFilter
         , reliabilityFilter = Dict.fromList <| List.map mapper vo.reliabilityFilter
+        , customFilter = Set.fromList vo.customFilter
         , sortPolicy = stringToSortPolicy vo.sortPolicy
     }
 
 
 getFilteredCycles : Model -> List FieldBossCycle
 getFilteredCycles model =
-    List.filter
-        (\boss ->
-            let
-                regionFilter =
-                    Dict.get boss.region model.regionFilter
-                        |> Maybe.withDefault True
+    if model.customFilterApplying then
+        List.filter (\boss -> Set.member boss.id model.customFilter) <| Result.withDefault [] model.cycles
 
-                forceFilter =
-                    Dict.get (forceText boss.force) model.forceFilter
-                        |> Maybe.withDefault True
+    else
+        List.filter
+            (\boss ->
+                let
+                    regionFilter =
+                        Dict.get boss.region model.regionFilter
+                            |> Maybe.withDefault True
 
-                reliabilityFilter =
-                    Dict.get (reliabilityText boss.reliability) model.reliabilityFilter
-                        |> Maybe.withDefault True
-            in
-            case ( regionFilter, forceFilter, reliabilityFilter ) of
-                ( True, True, True ) ->
-                    True
+                    forceFilter =
+                        Dict.get (forceText boss.force) model.forceFilter
+                            |> Maybe.withDefault True
 
-                _ ->
-                    False
-        )
-    <|
-        Result.withDefault [] model.cycles
+                    reliabilityFilter =
+                        Dict.get (reliabilityText boss.reliability) model.reliabilityFilter
+                            |> Maybe.withDefault True
+                in
+                case ( regionFilter, forceFilter, reliabilityFilter ) of
+                    ( True, True, True ) ->
+                        True
+
+                    _ ->
+                        False
+            )
+        <|
+            Result.withDefault [] model.cycles
 
 
 forceText : Bool -> String
@@ -484,6 +567,19 @@ bossComparator zone now policy =
                     Time.posixToMillis nextTime.time
 
 
+filterContainerClass : Bool -> Html.Attribute msg
+filterContainerClass customFilterApplying =
+    class
+        ("filter-container"
+            ++ (if customFilterApplying then
+                    " hidden"
+
+                else
+                    ""
+               )
+        )
+
+
 view : Model -> Document Msg
 view model =
     let
@@ -504,19 +600,25 @@ view model =
             , div [] [ text <| "サーバ: " ++ pageToServer model.page ]
             , div [ class "filter-container" ]
                 [ ul [ class "filter region" ]
+                    [ li [] [ checkbox "カスタムフィルタ" model.customFilterApplying ToggleCustomFilterApplying ]
+                    , li [] [ button [ class "btn btn-sm btn-success", onClick ShowCustomFilterEditor ] [ text "編集" ] ]
+                    ]
+                ]
+            , div [ filterContainerClass model.customFilterApplying ]
+                [ ul [ class "filter region" ]
                     [ li [] [ filterText "大砂漠" model.regionFilter ToggleRegionFilter ]
                     , li [] [ filterText "水月平原" model.regionFilter ToggleRegionFilter ]
                     , li [] [ filterText "白青山脈" model.regionFilter ToggleRegionFilter ]
                     , li [] [ filterText "入れ替わるFB" model.regionFilter ToggleRegionFilter ]
                     ]
                 ]
-            , div [ class "filter-container" ]
+            , div [ filterContainerClass model.customFilterApplying ]
                 [ ul [ class "filter region" ]
                     [ li [] [ filterText "勢力ボス" model.forceFilter ToggleForceFilter ]
                     , li [] [ filterText "非勢力ボス" model.forceFilter ToggleForceFilter ]
                     ]
                 ]
-            , div [ class "filter-container" ]
+            , div [ filterContainerClass model.customFilterApplying ]
                 [ ul [ class "filter region" ]
                     [ li [] [ filterText "信憑性あり" model.reliabilityFilter ToggleReliabilityFilter ]
                     , li [] [ filterText "信憑性なし" model.reliabilityFilter ToggleReliabilityFilter ]
@@ -548,15 +650,18 @@ view model =
     in
     { title = title
     , body =
-        case ( model.editTarget, model.reportText ) of
-            ( Nothing, Nothing ) ->
+        case ( model.editTarget, model.reportText, model.editCustomFilter ) of
+            ( Nothing, Nothing, Nothing ) ->
                 body
 
-            ( Just _, _ ) ->
+            ( Just _, _, _ ) ->
                 viewInBackdrop body <| viewEditor model
 
-            ( _, Just report ) ->
-                viewInBackdrop body <| viewReportText model.zone report
+            ( _, Just report, _ ) ->
+                viewInBackdrop body <| [ viewReportText model.zone report ]
+
+            ( _, _, Just bossIds ) ->
+                viewInBackdrop body <| [ viewCustomFilterEditor (Result.withDefault [] model.cycles) bossIds ]
     }
 
 
@@ -565,7 +670,56 @@ viewInBackdrop body inner =
     [ div [ class "container-body-and-backdrop" ] <| body ++ [ div [ class "backdrop", onClick CloseDialog ] [] ] ] ++ inner
 
 
-viewReportText : Zone -> { boss : FieldBossCycle, repop : PopTime } -> List (Html Msg)
+viewCustomFilterEditor : List FieldBossCycle -> Set FieldBossId -> Html Msg
+viewCustomFilterEditor bossList targetBossIds =
+    let
+        regionBossList_ =
+            List.Extra.groupWhile (\b0 b1 -> b0.region == b1.region) <| List.sortBy .sortOrder bossList
+        viewOption = \boss ->
+                                div [ class "custom-filter-boss", onClick <| ToggleCustomFilterTarget boss ]
+                                    [ checkbox "" (Set.member boss.id targetBossIds) <| ToggleCustomFilterTarget boss
+                                    , fbIcon boss
+                                    , span [class "custom-filter-option-label"] [text boss.name]
+                                    ]
+    in
+    div [ class "dialog-contents" ] <|
+        List.map
+            (\( regionBoss, bossListInRegion ) ->
+                div [class "region-custom-filter-container"] <|
+                    (h5 [] [ text regionBoss.region ])
+                        :: viewOption regionBoss
+                        :: List.map viewOption  bossListInRegion
+            )
+            regionBossList_
+        ++ [div [ class "btn-group" ]
+            [ button [ class "btn btn-sm btn-light", onClick CloseDialog ] [ text "キャンセル" ]
+            , button [ class "btn btn-sm btn-primary", onClick SaveCustomFilter ] [ text "保存" ]
+            ]]
+
+
+
+--    [ div [ class "dialog-contents" ] <|
+--        ++
+--        [ ul [] <|
+--            List.map
+--                (\boss ->
+--                    li [ class "custom-filter-boss", onClick <| ToggleCustomFilterTarget boss ]
+--                        [ checkbox "" (Set.member boss.id targetBossIds) <| ToggleCustomFilterTarget boss
+--                        , fbIcon boss
+--                        , span [] [ text boss.name ]
+--                        ]
+--                )
+--            <|
+--                List.sortBy .sortOrder bossList
+--        , div [ class "btn-group" ]
+--            [ button [ class "btn btn-sm btn-light", onClick CloseDialog ] [ text "キャンセル" ]
+--            , button [ class "btn btn-sm btn-primary", onClick SaveCustomFilter ] [ text "保存" ]
+--            ]
+--        ]
+--    ]
+
+
+viewReportText : Zone -> { boss : FieldBossCycle, repop : PopTime } -> Html Msg
 viewReportText zone report =
     let
         remainMinute =
@@ -574,11 +728,10 @@ viewReportText zone report =
         val =
             String.fromInt remainMinute ++ "m" ++ Times.hourMinute { zone = zone, time = report.repop.time }
     in
-    [ div [ class "dialog-contents" ]
+    div [ class "dialog-contents" ]
         [ label [] [ text "報告用にコピーどぞ" ]
         , input [ class "form-control", value val, id "report-text-input", onFocus SelectReportText ] []
         ]
-    ]
 
 
 viewEditor : Model -> List (Html Msg)
@@ -821,6 +974,7 @@ viewUpdateHistory : Html msg
 viewUpdateHistory =
     ul [ class "update-history" ]
         [ li [ class "description" ] [ text "更新履歴" ]
+        , li [ class "description" ] [ text "2020/04/18 自分の追いたいフィルボのみ表示する機能(カスタムフィルタ)を追加しました" ]
         , li [ class "description" ] [ text "2020/04/05 試験的に、信憑性を表示するようにしました。登場予想が大きくずれていないと思われるフィルボは背景が赤になります。より詳しく説明すれば「1. どなたがが前回討伐時刻を報告した」「2. どなたがが残り何分で登場するかを明確に報告した」の２つの場合に、信憑性ありと判断されます。討伐予想時刻を過ぎたら、信憑性なしになります。" ]
         , li [ class "description" ] [ text "2020/03/27 事情があり通知機能を切っています！ごめんなさい" ]
         , li [ class "description" ] [ text "2020/03/21 フィルボの登場が迫ると通知する機能を追加しました。使ってみたい方はささでご連絡をお願いしますm(_ _)m" ]
