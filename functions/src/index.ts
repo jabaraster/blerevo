@@ -1,6 +1,6 @@
 import * as functions from 'firebase-functions';
-import * as Line from "@line/bot-sdk";
 import * as Firebase from "firebase";
+import Axios from "axios";
 
 const COLLECTION_ID = "field-boss-cycle-2";
 const RE_NOTIFICATION_THRESHOLD = 10;
@@ -11,11 +11,6 @@ Firebase.initializeApp({
     projectId: "blade-and-soul-field-bos-c21bf",
 });
 const firestore = Firebase.firestore();
-
-const line = new Line.Client({
-    channelAccessToken: env("channel_acess_token"),
-    channelSecret: env("channel_secret"),
-});
 
 function env(name: string): string {
     const notf = functions.config().notification;
@@ -55,12 +50,17 @@ export const notificationCore = async function(server: string) {
             if (boss.repopIntervalMinutes <= 60) { // 頻繁にリポップスするボスは鬱陶しいので割愛
                 return false;
             }
+            if (!boss.reliability) { // 信憑性のある情報のみ通知
+                return true;
+            }
             const notificated = notificatedMap.get(boss.id);
             if (!notificated) {
                 return true;
             }
             return !withinMinute(RE_NOTIFICATION_THRESHOLD, notificated.data().notificatedTime.toDate(), now);
         });
+
+        console.log(bossList);
 
     if (bossList.length === 0) {
         return;
@@ -84,13 +84,17 @@ export const notificationCore = async function(server: string) {
             await notificated.ref.update({ notificatedTime: now });
         }
     }));
-    const notificationPromise = line.broadcast({
-        type: "text",
-        text: `${text}\nhttps://hastool.me`,
+    const notificationPromise = Axios.post(`https://api.push7.jp/api/v1/${env("push_7_appno")}/send`, {
+        apikey: env("push_7_apikey"),
+        title: "HASTOOLフィルボ通知",
+        body: text,
+        icon: "https://hastool.me/hastool-logo.png",
+        url: "https://hastool.me",
     });
 
     await updatePromise;
-    await notificationPromise;
+    const res = await notificationPromise;
+    console.log(res.data);
 }
 
 function withinMinute(minute: number, time1: Date, time2: Date): boolean {
@@ -112,6 +116,7 @@ interface FieldBossCycle {
     lastDefeatedTime: Firebase.firestore.Timestamp;
     repopIntervalMinutes: number;
     sortOrder: number;
+    reliability : boolean;
 }
 interface ExFieldBossCycle extends FieldBossCycle {
     nextPopTime: Date;

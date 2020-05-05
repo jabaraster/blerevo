@@ -1,6 +1,7 @@
 #!/bin/sh
 cd resource \
   && parcel build index.html \
-  && cp ./firebase-messaging-sw.js ./dist/ \
+  && cp img/haskell-logo.png \
+  && cp img/hastool-logo.png \
   && cd .. \
   && firebase deploy --only hosting:test-blerevo
