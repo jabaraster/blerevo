@@ -55,10 +55,11 @@ function getMessaging(): Firebase.messaging.Messaging {
     return ret;
 }
 
-export async function updateDefeatedTime(server: string, bossIdAtServer: string, time: Timestamp): Promise<void> {
+export async function updateDefeatedTime(server: string, bossIdAtServer: string, time: Timestamp, reliability: boolean): Promise<void> {
     const doc = await firestore.doc(`${COLLECTION_ID}/${server}/cycles/${bossIdAtServer}`)
     await doc.update({
         lastDefeatedTime: new Date(time.seconds * 1000),
+        reliability,
     })
 }
 

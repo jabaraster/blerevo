@@ -110,6 +110,12 @@ footer {
     font-weight: bold;
     color: @side-color;
 }
+tr.reliable {
+    background-color: rgba(255,230,230,1);
+}
+tr.unreliable {
+    background-color: rgba(245,245,245,1);
+}
 .time-bar-color-short {
     background-color: rgba(255,200,200,1);
 }
@@ -194,8 +200,26 @@ label.checkbox {
     background-color: rgba(0,0,0,.7);
     backdrop-filter: blur(3px);
 }
+.hidden {
+    display: none;
+}
 .container-body-and-backdrop {
     position: relative;
+}
+.region-custom-filter-container {
+    margin-bottom: .5em;
+    border-bottom: solid 1px rgba(30,30,30,.2);
+}
+.custom-filter-option-label {
+    color: rgba(60, 60, 50, 1);
+    font-size: 80%;
+    font-weight: bold;
+}
+.custom-filter-boss {
+    cursor: pointer;
+    display: inline-block;
+    margin-bottom: 3px;
+    margin-right: 1em;
 }
 
 .container-fb-icon {
