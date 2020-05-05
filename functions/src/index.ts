@@ -22,7 +22,7 @@ function env(name: string): string {
     }
 }
 
-export const notification = functions.pubsub.schedule("every 1 minutes").onRun(async context => {
+export const notification = functions.region("asia-northeast1").pubsub.schedule("every 1 minutes").onRun(async context => {
     await notificationCore("ケヤキ");
 });
 
@@ -60,8 +60,6 @@ export const notificationCore = async function(server: string) {
             return !withinMinute(RE_NOTIFICATION_THRESHOLD, notificated.data().notificatedTime.toDate(), now);
         });
 
-        console.log(bossList);
-
     if (bossList.length === 0) {
         return;
     }
@@ -89,7 +87,7 @@ export const notificationCore = async function(server: string) {
         title: "HASTOOLフィルボ通知",
         body: text,
         icon: "https://hastool.me/hastool-logo.png",
-        url: "https://hastool.me",
+        url: `https://hastool.me/${server}`,
     });
 
     await updatePromise;
