@@ -44,22 +44,27 @@ export const notificationCore = async function(server: string) {
             if (!withinMinute(boss.region === "入れ替わるFB" ? WITHIN_MINUTE_REPLACE_BOSS : WITHIN_MINUTE_NORMAL_BOSS, now, boss.nextPopTime)) {
                 return false;
             }
-            if (boss.force) { // 勢力ボスは追わない…
-                return false;
-            }
+            // if (boss.force) { // 勢力ボスは追わない…
+            //     return false;
+            // }
             if (boss.repopIntervalMinutes <= 60) { // 頻繁にリポップスするボスは鬱陶しいので割愛
                 return false;
             }
             if (!boss.reliability) { // 信憑性のある情報のみ通知
-                return true;
+                return false;
             }
             const notificated = notificatedMap.get(boss.id);
             if (!notificated) {
                 return true;
             }
+            console.log("----------------");
+            console.log(notificated.data());
+            console.log(notificated.data().notificatedTime.toDate());
+            console.log(withinMinute(RE_NOTIFICATION_THRESHOLD, notificated.data().notificatedTime.toDate(), now));
             return !withinMinute(RE_NOTIFICATION_THRESHOLD, notificated.data().notificatedTime.toDate(), now);
         });
 
+    console.log(bossList);
     if (bossList.length === 0) {
         return;
     }
