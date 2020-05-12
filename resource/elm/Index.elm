@@ -974,6 +974,7 @@ viewUpdateHistory : Html msg
 viewUpdateHistory =
     ul [ class "update-history" ]
         [ li [ class "description" ] [ text "更新履歴" ]
+        , li [ class "description" ] [ text "2020/05/12 新しい地域のフィルボを追加しました。" ]
         , li [ class "description" ] [ text "2020/05/05 フィルボの登場が迫ると通知する機能を再提供します！通知にはPush7というサービスを使っていて、スマホにはPush7アプリのインストールが必要です。通知を受け取りたい方は次のボタンをタップして設定をお願いします。"
                             , div [class "p7button", attribute "data-button-text" "フィルボ通知を受け取る"] []
                             ]
