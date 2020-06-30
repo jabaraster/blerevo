@@ -20,6 +20,8 @@ interface FieldBossCycle {
 }
 
 Firebase.initializeApp({
+    apiKey: "AIzaSyA8OgTiooOW4F97YTBVw5PuaR1p9oo4R9g",
+    appId: "1:176293133121:web:570cb3854312fea1ab7fc0",
     projectId: "blade-and-soul-field-bos-c21bf",
 });
 const firestore = Firebase.firestore();
@@ -37,10 +39,11 @@ if (navigator.serviceWorker) {
         ;
 }
 
-export async function updateDefeatedTime(server: string, bossIdAtServer: string, time: Timestamp): Promise<void> {
+export async function updateDefeatedTime(server: string, bossIdAtServer: string, time: Timestamp, reliability: boolean): Promise<void> {
     const doc = await firestore.doc(`${COLLECTION_ID}/${server}/cycles/${bossIdAtServer}`)
     await doc.update({
         lastDefeatedTime: new Date(time.seconds * 1000),
+        reliability,
     })
 }
 

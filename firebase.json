@@ -13,35 +13,38 @@
     ],
     "source": "functions"
   },
-  "hosting": [{
-    "site": "test-blerevo",
-    "public": "resource/dist",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "rewrites": [
-      {
-        "source": "**",
-        "destination": "resource/index.html"
-      }
-    ]
-  }, {
-    "site": "blade-and-soul-field-bos-c21bf",
-    "public": "resource/dist",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "rewrites": [
-      {
-        "source": "**",
-        "destination": "resource/index.html"
-      }
-    ]
-  }],
+  "hosting": [
+    {
+      "site": "blade-and-soul-field-bos-c21bf",
+      "public": "resource/dist",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ]
+    },
+    {
+      "site": "test-blerevo",
+      "public": "resource/dist",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ]
+    }
+  ],
   "storage": {
     "rules": "storage.rules"
   },

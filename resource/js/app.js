@@ -23,8 +23,8 @@ ports.requestLoadCycles.subscribe((server) => {
     });
 });
 
-ports.requestUpdateDefeatedTime.subscribe(({ server, bossIdAtServer, time }) => {
-  Funcs.updateDefeatedTime(server, bossIdAtServer, time)
+ports.requestUpdateDefeatedTime.subscribe(({ server, bossIdAtServer, time, reliability }) => {
+  Funcs.updateDefeatedTime(server, bossIdAtServer, time, reliability)
     .then(res => {
       // 処理なし
     })

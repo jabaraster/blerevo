@@ -1,4 +1,4 @@
-module Times exposing (..)
+module Times exposing (HourMinute, ZonedTime, addDay, addHour, addMinute, checkTimeNumber, checkTwoDigits, fullFormat, hourMinute, hourMinuteParser, hourMinuteToPosix, isValidHourMinute, omitSecond, twoDigitsNumberParser)
 
 import DateFormat exposing (..)
 import Parser exposing (..)
