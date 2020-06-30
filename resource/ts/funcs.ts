@@ -25,19 +25,6 @@ Firebase.initializeApp({
     projectId: "blade-and-soul-field-bos-c21bf",
 });
 const firestore = Firebase.firestore();
-const messaging = Firebase.messaging();
-messaging.usePublicVapidKey("BO7dBdApvC_gpN-ZRzFUAlUCFDfFEObmx5-PUlkYqS0M_5XEwY4bFpPbZmkklCwCuq1zMxcdWsGMIg4i_HTfKMs");
-if (navigator.serviceWorker) {
-    navigator.serviceWorker.register('./firebase-messaging-sw.js')
-        .then((registration) => {
-            messaging.useServiceWorker(registration);
-            return messaging.requestPermission()
-        })
-        .then((result) => {
-            console.log(`request permission result: ${result}`);
-        })
-        ;
-}
 
 export async function updateDefeatedTime(server: string, bossIdAtServer: string, time: Timestamp, reliability: boolean): Promise<void> {
     const doc = await firestore.doc(`${COLLECTION_ID}/${server}/cycles/${bossIdAtServer}`)
