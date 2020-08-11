@@ -95,7 +95,7 @@ init _ url key =
       , page = page
       , zone = Time.utc
       , now = Time.millisToPosix 0
-      , regionFilter = Dict.fromList [ ( "大砂漠", True ), ( "水月平原", True ), ( "白青山脈", True ), ( "入れ替わるFB", True ) ]
+      , regionFilter = Dict.fromList [ ( "大砂漠", True ), ( "水月平原", True ), ( "白青山脈", True ), ( "入れ替わるFB", True ), ( "月下渓谷(青)", True ), ( "月下渓谷(赤)", True ), ( "月下渓谷", True ) ]
       , forceFilter = Dict.fromList [ ( "勢力ボス", True ), ( "非勢力ボス", True ) ]
       , reliabilityFilter = Dict.fromList [ ( "信憑性あり", True ), ( "信憑性なし", True ) ]
       , customFilterApplying = False
@@ -610,6 +610,9 @@ view model =
                     , li [] [ filterText "水月平原" model.regionFilter ToggleRegionFilter ]
                     , li [] [ filterText "白青山脈" model.regionFilter ToggleRegionFilter ]
                     , li [] [ filterText "入れ替わるFB" model.regionFilter ToggleRegionFilter ]
+                    , li [] [ filterText "月下渓谷(青)" model.regionFilter ToggleRegionFilter ]
+                    , li [] [ filterText "月下渓谷(赤)" model.regionFilter ToggleRegionFilter ]
+                    , li [] [ filterText "月下渓谷" model.regionFilter ToggleRegionFilter ]
                     ]
                 ]
             , div [ filterContainerClass model.customFilterApplying ]
@@ -675,26 +678,29 @@ viewCustomFilterEditor bossList targetBossIds =
     let
         regionBossList_ =
             List.Extra.groupWhile (\b0 b1 -> b0.region == b1.region) <| List.sortBy .sortOrder bossList
-        viewOption = \boss ->
-                                div [ class "custom-filter-boss", onClick <| ToggleCustomFilterTarget boss ]
-                                    [ checkbox "" (Set.member boss.id targetBossIds) <| ToggleCustomFilterTarget boss
-                                    , fbIcon boss
-                                    , span [class "custom-filter-option-label"] [text boss.name]
-                                    ]
+
+        viewOption =
+            \boss ->
+                div [ class "custom-filter-boss", onClick <| ToggleCustomFilterTarget boss ]
+                    [ checkbox "" (Set.member boss.id targetBossIds) <| ToggleCustomFilterTarget boss
+                    , fbIcon boss
+                    , span [ class "custom-filter-option-label" ] [ text boss.name ]
+                    ]
     in
     div [ class "dialog-contents" ] <|
         List.map
             (\( regionBoss, bossListInRegion ) ->
-                div [class "region-custom-filter-container"] <|
-                    (h5 [] [ text regionBoss.region ])
+                div [ class "region-custom-filter-container" ] <|
+                    h5 [] [ text regionBoss.region ]
                         :: viewOption regionBoss
-                        :: List.map viewOption  bossListInRegion
+                        :: List.map viewOption bossListInRegion
             )
             regionBossList_
-        ++ [div [ class "btn-group" ]
-            [ button [ class "btn btn-sm btn-light", onClick CloseDialog ] [ text "キャンセル" ]
-            , button [ class "btn btn-sm btn-primary", onClick SaveCustomFilter ] [ text "保存" ]
-            ]]
+            ++ [ div [ class "btn-group" ]
+                    [ button [ class "btn btn-sm btn-light", onClick CloseDialog ] [ text "キャンセル" ]
+                    , button [ class "btn btn-sm btn-primary", onClick SaveCustomFilter ] [ text "保存" ]
+                    ]
+               ]
 
 
 
@@ -958,6 +964,15 @@ colorForRegion r =
         "入れ替わるFB" ->
             "#800000"
 
+        "月下渓谷(青)" ->
+            "#003000"
+
+        "月下渓谷(赤)" ->
+            "#003000"
+
+        "月下渓谷" ->
+            "#003000"
+
         _ ->
             "#000000"
 
@@ -974,8 +989,9 @@ viewUpdateHistory : Html msg
 viewUpdateHistory =
     ul [ class "update-history" ]
         [ li [ class "description" ] [ text "更新履歴" ]
+        , li [ class "description" ] [ text "2020/08/11 新しい地域(異界第1章)のフィルボを追加しました。" ]
         , li [ class "description" ] [ text "2020/05/12 新しい地域のフィルボを追加しました。" ]
-        , li [ class "description" ] [ text "2020/05/05 フィルボの登場が迫ると通知する機能を再提供します！通知にはPush7というサービスを使っていて、スマホにはPush7アプリのインストールが必要です。通知を受け取りたい方はページ一番下のボタンをタップして設定をお願いします。"]
+        , li [ class "description" ] [ text "2020/05/05 フィルボの登場が迫ると通知する機能を再提供します！通知にはPush7というサービスを使っていて、スマホにはPush7アプリのインストールが必要です。通知を受け取りたい方はページ一番下のボタンをタップして設定をお願いします。" ]
         , li [ class "description" ] [ text "2020/04/18 自分の追いたいフィルボのみ表示する機能(カスタムフィルタ)を追加しました" ]
         , li [ class "description" ] [ text "2020/04/05 試験的に、信憑性を表示するようにしました。登場予想が大きくずれていないと思われるフィルボは背景が赤になります。より詳しく説明すれば「1. どなたがが前回討伐時刻を報告した」「2. どなたがが残り何分で登場するかを明確に報告した」の２つの場合に、信憑性ありと判断されます。討伐予想時刻を過ぎたら、信憑性なしになります。" ]
         , li [ class "description" ] [ text "2020/03/27 事情があり通知機能を切っています！ごめんなさい" ]
