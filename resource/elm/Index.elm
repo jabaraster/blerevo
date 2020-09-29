@@ -684,7 +684,10 @@ viewCustomFilterEditor bossList targetBossIds =
                 div [ class "custom-filter-boss", onClick <| ToggleCustomFilterTarget boss ]
                     [ checkbox "" (Set.member boss.id targetBossIds) <| ToggleCustomFilterTarget boss
                     , fbIcon boss
-                    , span [ class "custom-filter-option-label" ] [ text boss.name ]
+                    , div [ class "custom-filter-boss-label" ] [
+                     span [ class "custom-filter-boss-area" ] [ text boss.area ]
+                    , span [ class "custom-filter-boss-name" ] [ text boss.name ]
+                    ]
                     ]
     in
     div [ class "dialog-contents" ] <|
@@ -989,6 +992,7 @@ viewUpdateHistory : Html msg
 viewUpdateHistory =
     ul [ class "update-history" ]
         [ li [ class "description" ] [ text "更新履歴" ]
+        , li [ class "description" ] [ text "2020/08/21 ダイアログのボタンが押せないことがあるバグに対処しました。またカスタムフィルタを設定するときのボスに地域名を付記するようにしました。" ]
         , li [ class "description" ] [ text "2020/08/11 新しい地域(異界第1章)のフィルボを追加しました。" ]
         , li [ class "description" ] [ text "2020/05/12 新しい地域のフィルボを追加しました。" ]
         , li [ class "description" ] [ text "2020/05/05 フィルボの登場が迫ると通知する機能を再提供します！通知にはPush7というサービスを使っていて、スマホにはPush7アプリのインストールが必要です。通知を受け取りたい方はページ一番下のボタンをタップして設定をお願いします。" ]

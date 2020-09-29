@@ -12,6 +12,7 @@ interface FieldBossCycle {
     region: string;
     area: string;
     force: boolean,
+    reliability: boolean;
     lastDefeatedTime: Timestamp;
     repopIntervalMinutes: number;
     sortOrder: number;
@@ -27,19 +28,27 @@ function buildCollection(server: string): Firebase.firestore.CollectionReference
     return firestore.collection(`${COLLECTION_ID}/${server}/cycles/`);
 }
 
-async function setupServer(server: string) {
+export async function setupServer(server: string) {
     const bossList = await listCycles(server);
-    if (bossList.length > 0) {
-        return;
-    }
+//    if (bossList.length > 0) {
+//        return;
+//    }
+    const bossListMap = bossList.reduce((accum, boss) => {
+      accum.set(boss.id, boss);
+      return accum;
+    }, new Map<string, FieldBossCycle>());
     const root = buildCollection(server);
     await Promise.all(getBossCycleList().map(boss => {
+        if (bossListMap.has(boss.id)) {
+            return;
+        }
+        console.log(`フィルボ ${boss.name} の情報を登録します。`);
         const o = Object.assign(boss, {}, { lastDefeatedTime: new Date(boss.lastDefeatedTime.seconds * 1000) });
         return root.add(o);
     }));
 }
 
-async function listCycles(server: string): Promise<FieldBossCycle[]> {
+export async function listCycles(server: string): Promise<FieldBossCycle[]> {
     const ret: any[] = [];
     await buildCollection(server)
     .orderBy("sortOrder", "asc")
@@ -52,12 +61,6 @@ async function listCycles(server: string): Promise<FieldBossCycle[]> {
     return ret;
 }
 
-setupServer("テスト")
-    .then(console.log)
-    .catch(console.log)
-    ;
-
-
 function getBossCycleList(): FieldBossCycle[] {
     return [
         {
@@ -68,6 +71,7 @@ function getBossCycleList(): FieldBossCycle[] {
           name: '金剛力士',
           region: '大砂漠',
           repopIntervalMinutes: 60,
+          reliability: false,
           sortOrder: 0
         },
         {
@@ -78,6 +82,7 @@ function getBossCycleList(): FieldBossCycle[] {
           name: '鬼炎ハサミ虫',
           region: '大砂漠',
           repopIntervalMinutes: 60,
+          reliability: false,
           sortOrder: 10
         },
         {
@@ -88,6 +93,7 @@ function getBossCycleList(): FieldBossCycle[] {
           name: '黒唱族族長',
           region: '大砂漠',
           repopIntervalMinutes: 60,
+          reliability: false,
           sortOrder: 20
         },
         {
@@ -98,6 +104,7 @@ function getBossCycleList(): FieldBossCycle[] {
           name: 'ヤゴルタ',
           region: '大砂漠',
           repopIntervalMinutes: 60,
+          reliability: false,
           sortOrder: 30
         },
         {
@@ -108,6 +115,7 @@ function getBossCycleList(): FieldBossCycle[] {
           name: '黒獣神',
           region: '水月平原',
           repopIntervalMinutes: 120,
+          reliability: false,
           sortOrder: 40
         },
         {
@@ -118,6 +126,7 @@ function getBossCycleList(): FieldBossCycle[] {
           name: 'ポルコロッソ族野蛮戦士',
           region: '水月平原',
           repopIntervalMinutes: 120,
+          reliability: false,
           sortOrder: 50
         },
         {
@@ -128,6 +137,7 @@ function getBossCycleList(): FieldBossCycle[] {
           name: 'ゴルラク軍訓練教官',
           region: '水月平原',
           repopIntervalMinutes: 120,
+          reliability: false,
           sortOrder: 60
         },
         {
@@ -138,6 +148,7 @@ function getBossCycleList(): FieldBossCycle[] {
           name: '鬼蛮',
           region: '水月平原',
           repopIntervalMinutes: 180,
+          reliability: false,
           sortOrder: 70
         },
         {
@@ -148,6 +159,7 @@ function getBossCycleList(): FieldBossCycle[] {
           name: '陰玄儡',
           region: '水月平原',
           repopIntervalMinutes: 120,
+          reliability: false,
           sortOrder: 80
         },
         {
@@ -158,6 +170,7 @@ function getBossCycleList(): FieldBossCycle[] {
           name: '捕食者ブタン',
           region: '白青山脈',
           repopIntervalMinutes: 180,
+          reliability: false,
           sortOrder: 90
         },
         {
@@ -168,6 +181,7 @@ function getBossCycleList(): FieldBossCycle[] {
           name: '鋭いキバ',
           region: '白青山脈',
           repopIntervalMinutes: 240,
+          reliability: false,
           sortOrder: 100
         },
         {
@@ -178,6 +192,7 @@ function getBossCycleList(): FieldBossCycle[] {
           name: '戦斧族頭目チャチャ',
           region: '白青山脈',
           repopIntervalMinutes: 180,
+          reliability: false,
           sortOrder: 110
         },
         {
@@ -188,6 +203,7 @@ function getBossCycleList(): FieldBossCycle[] {
           name: 'シンブウ',
           region: '白青山脈',
           repopIntervalMinutes: 180,
+          reliability: false,
           sortOrder: 120
         },
         {
@@ -198,6 +214,7 @@ function getBossCycleList(): FieldBossCycle[] {
           name: '木こり副族長ウタ',
           region: '白青山脈',
           repopIntervalMinutes: 180,
+          reliability: false,
           sortOrder: 130
         },
         {
@@ -208,6 +225,7 @@ function getBossCycleList(): FieldBossCycle[] {
           name: '兎仮面族フィク・コウ',
           region: '白青山脈',
           repopIntervalMinutes: 180,
+          reliability: false,
           sortOrder: 140
         },
         {
@@ -218,6 +236,7 @@ function getBossCycleList(): FieldBossCycle[] {
           name: '忘却の渓谷FB',
           region: '入れ替わるFB',
           repopIntervalMinutes: 240,
+          reliability: false,
           sortOrder: 150
         },
         {
@@ -228,6 +247,7 @@ function getBossCycleList(): FieldBossCycle[] {
           name: '怨恨の廃墟FB',
           region: '入れ替わるFB',
           repopIntervalMinutes: 240,
+          reliability: false,
           sortOrder: 160
         },
         {
@@ -238,6 +258,7 @@ function getBossCycleList(): FieldBossCycle[] {
           name: '忘却の迷宮FB',
           region: '入れ替わるFB',
           repopIntervalMinutes: 240,
+          reliability: false,
           sortOrder: 170
         },
         {
@@ -248,7 +269,96 @@ function getBossCycleList(): FieldBossCycle[] {
           name: '黄昏の迷宮FB',
           region: '入れ替わるFB',
           repopIntervalMinutes: 240,
+          reliability: false,
           sortOrder: 180
-        }
+        },
+        {
+          area: '捨てられた法機の渓谷',
+          force: false,
+          id: 'yussi-dofun',
+          lastDefeatedTime: { seconds: 1584628980 },
+          name: '守護隊長ユッシ・ドウファン',
+          region: '白青山脈',
+          repopIntervalMinutes: 240,
+          reliability: false,
+          sortOrder: 190
+        },
+        {
+           area: '捨てられた法機の渓谷',
+           force: true,
+           id: 'wohyo',
+           lastDefeatedTime: { seconds: 1600131000 },
+           name: '守護隊長ウォーヒョ',
+           region: '白青山脈',
+           reliability: false,
+           repopIntervalMinutes: 240,
+           sortOrder: 200
+         },
+         {
+           area: '灰色の谷',
+           force: false,
+           id: 'yougan_hasamimushi',
+           lastDefeatedTime: { seconds: 1600997640 },
+           name: '溶岩ハサミ虫',
+           region: '月下渓谷(青)',
+           reliability: false,
+           repopIntervalMinutes: 240,
+           sortOrder: 210
+         },
+         {
+           area: '暗闇の谷',
+           force: false,
+           id: 'yougan_sasori',
+           lastDefeatedTime: { seconds: 1599301020 },
+           name: '溶岩サソリ',
+           region: '月下渓谷(赤)',
+           reliability: false,
+           repopIntervalMinutes: 240,
+           sortOrder: 220
+         },
+         {
+           area: '古い鉱山',
+           force: false,
+           id: 'hakon',
+           lastDefeatedTime: { seconds: 1600236000 },
+           name: '破滅法機破魂',
+           region: '月下渓谷(青)',
+           reliability: false,
+           repopIntervalMinutes: 240,
+           sortOrder: 230
+         },
+         {
+           area: '棄てられた鉱山',
+           force: false,
+           id: 'harei',
+           lastDefeatedTime: { seconds: 1599335520 },
+           name: '破滅法機破霊',
+           region: '月下渓谷(赤)',
+           reliability: false,
+           repopIntervalMinutes: 240,
+           sortOrder: 240
+         },
+         {
+           area: '霊石渓谷',
+           force: true,
+           id: 'charo_eeru',
+           lastDefeatedTime: { seconds: 1597120200 },
+           name: '戦闘隊長チャロ・エール',
+           region: '月下渓谷',
+           reliability: false,
+           repopIntervalMinutes: 240,
+           sortOrder: 250
+         },
+         {
+           area: '霊石渓谷',
+           force: true,
+           id: 'koro_saigetsu',
+           lastDefeatedTime: { seconds: 1599258780 },
+           name: '戦闘隊長コロ・サイゲツ',
+           region: '月下渓谷',
+           reliability: false,
+           repopIntervalMinutes: 240,
+           sortOrder: 260
+         }
       ];
 }
