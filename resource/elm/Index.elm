@@ -992,6 +992,7 @@ viewUpdateHistory : Html msg
 viewUpdateHistory =
     ul [ class "update-history" ]
         [ li [ class "description" ] [ text "更新履歴" ]
+        , li [ class "description" ] [ text "2020/11/01 サクラサーバについても通知が飛ぶようにしました。" ]
         , li [ class "description" ] [ text "2020/08/21 ダイアログのボタンが押せないことがあるバグに対処しました。またカスタムフィルタを設定するときのボスに地域名を付記するようにしました。" ]
         , li [ class "description" ] [ text "2020/08/11 新しい地域(異界第1章)のフィルボを追加しました。" ]
         , li [ class "description" ] [ text "2020/05/12 新しい地域のフィルボを追加しました。" ]

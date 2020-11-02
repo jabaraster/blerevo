@@ -24,6 +24,7 @@ function env(name: string): string {
 
 export const notification = functions.region("asia-northeast1").pubsub.schedule("every 1 minutes").onRun(async context => {
     await notificationCore("ケヤキ");
+    await notificationCore("サクラ");
 });
 
 export const notificationCore = async function(server: string) {
