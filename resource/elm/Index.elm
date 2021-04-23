@@ -1,6 +1,6 @@
 module Index exposing (Model, Msg(..), Page(..), applyViewOption, bossComparator, checkbox, circle, colorForRegion, defaultServer, fbIcon, filterText, forceLabel, forceText, getFilteredCycles, init, inputErrorClass, main, modelToViewOption, pageToServer, parseUrl, remainTimeText, subscriptions, timeBarColorClass, timeBarWidth, update, updateDictionary, view, viewBossTimeline, viewEditor, viewInBackdrop, viewReportText, viewUpdateHistory, zonedNow)
 
-import Browser exposing (Document, UrlRequest)
+import Browser exposing (Document)
 import Browser.Navigation as Nav exposing (Key)
 import Dict exposing (Dict)
 import Html exposing (..)
@@ -12,7 +12,7 @@ import List.Extra
 import Ports
 import Set exposing (Set)
 import Task
-import TestData
+import Time exposing (Posix, Zone)
 import Time exposing (Posix, Zone)
 import Time.Extra exposing (Interval(..))
 import Times exposing (ZonedTime)
