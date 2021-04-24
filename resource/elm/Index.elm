@@ -1,4 +1,4 @@
-module Index exposing (Model, Msg(..), Page(..), applyViewOption, bossComparator, checkbox, circle, colorForRegion, defaultServer, fbIcon, filterText, forceLabel, forceText, getFilteredCycles, init, inputErrorClass, main, modelToViewOption, pageToServer, parseUrl, remainTimeText, subscriptions, timeBarColorClass, timeBarWidth, update, updateDictionary, view, viewBossTimeline, viewEditor, viewInBackdrop, viewReportText, viewUpdateHistory, zonedNow)
+module Index exposing (Model, Msg(..), Page(..), applyViewOption, bossComparator, checkbox, circle, colorForRegion, defaultServer, fbIcon, filterText, getFilteredCycles, init, inputErrorClass, main, modelToViewOption, pageToServer, parseUrl, remainTimeText, subscriptions, timeBarColorClass, timeBarWidth, update, updateDictionary, view, viewBossTimeline, viewEditor, viewInBackdrop, viewReportText, viewUpdateHistory, zonedNow)
 
 import Browser exposing (Document, UrlRequest)
 import Browser.Navigation as Nav exposing (Key)
@@ -42,7 +42,6 @@ type alias Model =
     , zone : Zone
     , now : Posix
     , regionFilter : Dict Region Bool
-    , forceFilter : Dict String Bool
     , reliabilityFilter : Dict String Bool
     , customFilterApplying : Bool
     , customFilter : Set FieldBossId
@@ -64,7 +63,6 @@ type Msg
     | GetNowFirst Posix
     | GetNow Posix
     | ToggleRegionFilter Region
-    | ToggleForceFilter String
     | ToggleReliabilityFilter String
     | ToggleCustomFilterApplying
     | ToggleCustomFilterTarget FieldBossCycle
@@ -95,7 +93,6 @@ init _ url key =
       , zone = Time.utc
       , now = Time.millisToPosix 0
       , regionFilter = Dict.fromList [ ( "グルーディオ地方", True ), ("ディオン地方", True), ("ギラン地方",True) ]
-      , forceFilter = Dict.fromList [ ( "勢力ボス", True ), ( "非勢力ボス", True ) ]
       , reliabilityFilter = Dict.fromList [ ( "信憑性あり", True ), ( "信憑性なし", True ) ]
       , customFilterApplying = False
       , customFilter = Set.empty
@@ -224,15 +221,6 @@ update msg model =
             let
                 newModel =
                     { model | regionFilter = updateDictionary region model.regionFilter }
-            in
-            ( newModel
-            , Ports.requestSaveViewOption <| modelToViewOption newModel
-            )
-
-        ToggleForceFilter f ->
-            let
-                newModel =
-                    { model | forceFilter = updateDictionary f model.forceFilter }
             in
             ( newModel
             , Ports.requestSaveViewOption <| modelToViewOption newModel
@@ -501,16 +489,12 @@ getFilteredCycles model =
                         Dict.get boss.region model.regionFilter
                             |> Maybe.withDefault True
 
-                    forceFilter =
-                        Dict.get (forceText boss.force) model.forceFilter
-                            |> Maybe.withDefault True
-
                     reliabilityFilter =
                         Dict.get (reliabilityText boss.reliability) model.reliabilityFilter
                             |> Maybe.withDefault True
                 in
-                case ( regionFilter, forceFilter, reliabilityFilter ) of
-                    ( True, True, True ) ->
+                case ( regionFilter, reliabilityFilter ) of
+                    ( True, True ) ->
                         True
 
                     _ ->
@@ -518,15 +502,6 @@ getFilteredCycles model =
             )
         <|
             Result.withDefault [] model.cycles
-
-
-forceText : Bool -> String
-forceText b =
-    if b then
-        "勢力ボス"
-
-    else
-        "非勢力ボス"
 
 
 reliabilityText : Bool -> String
@@ -576,7 +551,7 @@ filterContainerClass customFilterApplying =
         )
 
 titleText : String
-titleText = "Linege 2M Field Boss Tracker"
+titleText = "Lineage 2M Field Boss Tracker"
 
 view : Model -> Document Msg
 view model =
@@ -609,12 +584,6 @@ view model =
                     , li [] [ filterText "ギラン地方" model.regionFilter ToggleRegionFilter ]
                     ]
                 ]
---            , div [ filterContainerClass model.customFilterApplying ]
---                [ ul [ class "filter region" ]
---                    [ li [] [ filterText "勢力ボス" model.forceFilter ToggleForceFilter ]
---                    , li [] [ filterText "非勢力ボス" model.forceFilter ToggleForceFilter ]
---                    ]
---                ]
             , div [ filterContainerClass model.customFilterApplying ]
                 [ ul [ class "filter region" ]
                     [ li [] [ filterText "信憑性あり" model.reliabilityFilter ToggleReliabilityFilter ]
@@ -894,30 +863,10 @@ timeBarWidth popTime =
 
 fbIcon : FieldBossCycle -> Html msg
 fbIcon boss =
-    let
-        forceClass =
-            if boss.force then
-                "force-boss"
-
-            else
-                "unforce-boss"
-    in
-    span [ class "container-fb-icon", class forceClass ]
+    span [ class "container-fb-icon" ]
         [ span [ class <| "fb-icon-" ++ boss.id ] []
         ]
 
-
-forceLabel : FieldBossCycle -> Html msg
-forceLabel boss =
-    let
-        c =
-            if boss.force then
-                "#c71585"
-
-            else
-                "#ffffff"
-    in
-    span [ style "background-color" c ] [ text "\u{3000}" ]
 
 
 colorForRegion : Region -> String

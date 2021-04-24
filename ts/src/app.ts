@@ -64,38 +64,28 @@ export async function listCycles(server: string): Promise<FieldBossCycle[]> {
 }
 
 function getBossCycleList(): FieldBossCycle[] {
-    const src = [
-      ['グルーディオ地方','クイーンアント','アリの巣地下3階',360,'queen_ant'],
-      ['グルーディオ地方','サヴァン','アリの巣地下2階',720,'savan'],
-      ['グルーディオ地方','バシラ','荒地南部',600,'bashira'],
-      ['グルーディオ地方','チェルトゥバ','チェルトゥバのキャンプ',360,'cheruthuba'],
-      ['ディオン地方','コアサセプタ','クルマの塔7階',600,'koa_saseputa'],
-      ['ディオン地方','カタン','クルマの塔6階',600,'katan'],
-      ['ディオン地方','汚染したクルマ','クルマの塔3階',480,'osen_shita_kuruma'],
-      ['ディオン地方','テンペスト','死体処理場',360,'tempest'],
-      ['ディオン地方','スタン','巨人の痕跡',420,'stan'],
-      ['ディオン地方','ミュータントクルマ','クルマ湿地',480,'mutant_kuruma'],
-      ['ディオン地方','サルカ','デルーリザードマン生息地',600,'saruka'],
-      ['ディオン地方','ティミトリス','フローラン開拓地',480,'timitris'],
-      ['ディオン地方','バンドライト','ディオン丘陵地帯',720,'bandright'],
-      ['ディオン地方','タラキン','反乱軍アジト',600,'tarakin'],
-      ['ディオン地方','フェリス','ビーハイヴ',180,'feris'],
-      ['ディオン地方','エンクラ','ディオン牧草地',360,'enchra'],
-      ['ギラン地方','ベヒモス','ドラゴンバレー北部',540,'behemoth'],
-      ['ギラン地方','ブラックリリー','死の回廊',720,'balck_riry'],
-      ['ギラン地方','メデューサ','メデューサの庭園',600,'medousa'],
-      ['ギラン地方','バンナロード','ゴルコンの花園',300,'bannaroad'],
-      ['ギラン地方','ブレカ','ブレカ巣窟',360,'bureka'],
-      ['ギラン地方','マトゥラ','略奪者の野営地',360,'mathura'],
+    return [
+      {region: 'グルーディオ地方', name: 'クイーンアント', area: 'アリの巣地下3階', repopIntervalMinutes: 360, id: 'queen_ant', reliability: false, sortOrder: 0, lastDefeatedTime: { seconds: 1584531960 },},
+      {region: 'グルーディオ地方', name: 'サヴァン', area: 'アリの巣地下2階', repopIntervalMinutes: 720, id: 'savan', reliability: false, sortOrder: 0, lastDefeatedTime: { seconds: 1584531960 },},
+      {region: 'グルーディオ地方', name: 'バシラ', area: '荒地南部', repopIntervalMinutes: 600, id: 'bashira', reliability: false, sortOrder: 0, lastDefeatedTime: { seconds: 1584531960 },},
+      {region: 'グルーディオ地方', name: 'チェルトゥバ', area: 'チェルトゥバのキャンプ', repopIntervalMinutes: 360, id: 'cheruthuba', reliability: false, sortOrder: 0, lastDefeatedTime: { seconds: 1584531960 },},
+      {region: 'ディオン地方', name: 'コアサセプタ', area: 'クルマの塔7階', repopIntervalMinutes: 600, id: 'koa_saseputa', reliability: false, sortOrder: 0, lastDefeatedTime: { seconds: 1584531960 },},
+      {region: 'ディオン地方', name: 'カタン', area: 'クルマの塔6階', repopIntervalMinutes: 600, id: 'katan', reliability: false, sortOrder: 0, lastDefeatedTime: { seconds: 1584531960 },},
+      {region: 'ディオン地方', name: '汚染したクルマ', area: 'クルマの塔3階', repopIntervalMinutes: 480, id: 'osen_shita_kuruma', reliability: false, sortOrder: 0, lastDefeatedTime: { seconds: 1584531960 },},
+      {region: 'ディオン地方', name: 'テンペスト', area: '死体処理場', repopIntervalMinutes: 360, id: 'tempest', reliability: false, sortOrder: 0, lastDefeatedTime: { seconds: 1584531960 },},
+      {region: 'ディオン地方', name: 'スタン', area: '巨人の痕跡', repopIntervalMinutes: 420, id: 'stan', reliability: false, sortOrder: 0, lastDefeatedTime: { seconds: 1584531960 },},
+      {region: 'ディオン地方', name: 'ミュータントクルマ', area: 'クルマ湿地', repopIntervalMinutes: 480, id: 'mutant_kuruma', reliability: false, sortOrder: 0, lastDefeatedTime: { seconds: 1584531960 },},
+      {region: 'ディオン地方', name: 'サルカ', area: 'デルーリザードマン生息地', repopIntervalMinutes: 600, id: 'saruka', reliability: false, sortOrder: 0, lastDefeatedTime: { seconds: 1584531960 },},
+      {region: 'ディオン地方', name: 'ティミトリス', area: 'フローラン開拓地', repopIntervalMinutes: 480, id: 'timitris', reliability: false, sortOrder: 0, lastDefeatedTime: { seconds: 1584531960 },},
+      {region: 'ディオン地方', name: 'バンドライト', area: 'ディオン丘陵地帯', repopIntervalMinutes: 720, id: 'bandright', reliability: false, sortOrder: 0, lastDefeatedTime: { seconds: 1584531960 },},
+      {region: 'ディオン地方', name: 'タラキン', area: '反乱軍アジト', repopIntervalMinutes: 600, id: 'tarakin', reliability: false, sortOrder: 0, lastDefeatedTime: { seconds: 1584531960 },},
+      {region: 'ディオン地方', name: 'フェリス', area: 'ビーハイヴ', repopIntervalMinutes: 180, id: 'feris', reliability: false, sortOrder: 0, lastDefeatedTime: { seconds: 1584531960 },},
+      {region: 'ディオン地方', name: 'エンクラ', area: 'ディオン牧草地', repopIntervalMinutes: 360, id: 'enchra', reliability: false, sortOrder: 0, lastDefeatedTime: { seconds: 1584531960 },},
+      {region: 'ギラン地方', name: 'ベヒモス', area: 'ドラゴンバレー北部', repopIntervalMinutes: 540, id: 'behemoth', reliability: false, sortOrder: 0, lastDefeatedTime: { seconds: 1584531960 },},
+      {region: 'ギラン地方', name: 'ブラックリリー', area: '死の回廊', repopIntervalMinutes: 720, id: 'balck_riry', reliability: false, sortOrder: 0, lastDefeatedTime: { seconds: 1584531960 },},
+      {region: 'ギラン地方', name: 'メデューサ', area: 'メデューサの庭園', repopIntervalMinutes: 600, id: 'medousa', reliability: false, sortOrder: 0, lastDefeatedTime: { seconds: 1584531960 },},
+      {region: 'ギラン地方', name: 'バンナロード', area: 'ゴルコンの花園', repopIntervalMinutes: 300, id: 'bannaroad', reliability: false, sortOrder: 0, lastDefeatedTime: { seconds: 1584531960 },},
+      {region: 'ギラン地方', name: 'ブレカ', area: 'ブレカ巣窟', repopIntervalMinutes: 360, id: 'bureka', reliability: false, sortOrder: 0, lastDefeatedTime: { seconds: 1584531960 },},
+      {region: 'ギラン地方', name: 'マトゥラ', area: '略奪者の野営地', repopIntervalMinutes: 360, id: 'mathura', reliability: false, sortOrder: 0, lastDefeatedTime: { seconds: 1584531960 },},
     ]
-    return src.map((ary) => {
-      name: ary[1],
-      id: ary[4],
-      area: ary[2],
-      region: ary[0],
-      reliability: false,
-      lastDefeatedTime: Timestamp
-      repopIntervalMinutes: number;
-      sortOrder: number;
-    })
 }

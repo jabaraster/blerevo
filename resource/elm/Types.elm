@@ -34,7 +34,6 @@ type alias FieldBossCycle =
     , serverId : String
     , area : Area
     , region : Region 
-    , force : Bool
     , repopIntervalMinutes : Int
     , lastDefeatedTime : Posix
     , sortOrder : Int
@@ -50,7 +49,6 @@ fieldBossCycleDecoder =
         |> DP.required "serverId" D.string
         |> DP.required "area" D.string
         |> DP.required "region" D.string
-        |> DP.required "force" D.bool
         |> DP.required "repopIntervalMinutes" D.int
         |> DP.required "lastDefeatedTime" (timestampDecoder |> D.andThen (D.succeed << timestampToPosix))
         |> DP.required "sortOrder" D.int
