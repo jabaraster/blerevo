@@ -82,7 +82,7 @@ function getBossCycleList(): FieldBossCycle[] {
       {region: 'ディオン地方', name: 'フェリス', area: 'ビーハイヴ', repopIntervalMinutes: 180, id: 'feris', reliability: false, sortOrder: 0, lastDefeatedTime: { seconds: 1584531960 },},
       {region: 'ディオン地方', name: 'エンクラ', area: 'ディオン牧草地', repopIntervalMinutes: 360, id: 'enchra', reliability: false, sortOrder: 0, lastDefeatedTime: { seconds: 1584531960 },},
       {region: 'ギラン地方', name: 'ベヒモス', area: 'ドラゴンバレー北部', repopIntervalMinutes: 540, id: 'behemoth', reliability: false, sortOrder: 0, lastDefeatedTime: { seconds: 1584531960 },},
-      {region: 'ギラン地方', name: 'ブラックリリー', area: '死の回廊', repopIntervalMinutes: 720, id: 'balck_riry', reliability: false, sortOrder: 0, lastDefeatedTime: { seconds: 1584531960 },},
+      {region: 'ギラン地方', name: 'ブラックリリー', area: '死の回廊', repopIntervalMinutes: 720, id: 'black_riry', reliability: false, sortOrder: 0, lastDefeatedTime: { seconds: 1584531960 },},
       {region: 'ギラン地方', name: 'メデューサ', area: 'メデューサの庭園', repopIntervalMinutes: 600, id: 'medousa', reliability: false, sortOrder: 0, lastDefeatedTime: { seconds: 1584531960 },},
       {region: 'ギラン地方', name: 'バンナロード', area: 'ゴルコンの花園', repopIntervalMinutes: 300, id: 'bannaroad', reliability: false, sortOrder: 0, lastDefeatedTime: { seconds: 1584531960 },},
       {region: 'ギラン地方', name: 'ブレカ', area: 'ブレカ巣窟', repopIntervalMinutes: 360, id: 'bureka', reliability: false, sortOrder: 0, lastDefeatedTime: { seconds: 1584531960 },},
