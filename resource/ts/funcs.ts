@@ -1,6 +1,6 @@
 import * as Firebase from "firebase";
 
-const COLLECTION_ID = "field-boss-cycle-2";
+const COLLECTION_ID = "field-boss-cycle";
 
 interface Timestamp {
     seconds: number;
@@ -20,9 +20,9 @@ interface FieldBossCycle {
 }
 
 Firebase.initializeApp({
-    apiKey: "AIzaSyA8OgTiooOW4F97YTBVw5PuaR1p9oo4R9g",
-    appId: "1:176293133121:web:570cb3854312fea1ab7fc0",
-    projectId: "blade-and-soul-field-bos-c21bf",
+    //apiKey: "AIzaSyA8OgTiooOW4F97YTBVw5PuaR1p9oo4R9g",
+    appId: "1:1005570403616:web:9efaba9a3631325e937b45",
+    projectId: "hastool-lineage",
 });
 const firestore = Firebase.firestore();
 

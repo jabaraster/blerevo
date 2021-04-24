@@ -8,7 +8,7 @@ const WITHIN_MINUTE_NORMAL_BOSS = 3;
 const WITHIN_MINUTE_REPLACE_BOSS = 6;
 
 Firebase.initializeApp({
-    projectId: "blade-and-soul-field-bos-c21bf",
+    projectId: "hastool-lineage",
 });
 const firestore = Firebase.firestore();
 

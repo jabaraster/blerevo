@@ -12,7 +12,6 @@ import List.Extra
 import Ports
 import Set exposing (Set)
 import Task
-import TestData
 import Time exposing (Posix, Zone)
 import Time.Extra exposing (Interval(..))
 import Times exposing (ZonedTime)
@@ -59,7 +58,7 @@ type alias Model =
 
 
 type Msg
-    = LinkClicked Browser.UrlRequest
+    = LinkClicked UrlRequest
     | UrlChanged Url
     | GetZone Zone
     | GetNowFirst Posix
@@ -95,7 +94,7 @@ init _ url key =
       , page = page
       , zone = Time.utc
       , now = Time.millisToPosix 0
-      , regionFilter = Dict.fromList [ ( "大砂漠", True ), ( "水月平原", True ), ( "白青山脈", True ), ( "入れ替わるFB", True ), ( "月下渓谷(青)", True ), ( "月下渓谷(赤)", True ), ( "月下渓谷", True ) ]
+      , regionFilter = Dict.fromList [ ( "グルーディオ地方", True ), ("ディオン地方", True), ("ギラン地方",True) ]
       , forceFilter = Dict.fromList [ ( "勢力ボス", True ), ( "非勢力ボス", True ) ]
       , reliabilityFilter = Dict.fromList [ ( "信憑性あり", True ), ( "信憑性なし", True ) ]
       , customFilterApplying = False
@@ -134,8 +133,9 @@ subscriptions _ =
         ]
 
 
+defaultServer : String
 defaultServer =
-    "ケヤキ"
+    "バーツ03"
 
 
 parseUrl : Url -> Page
@@ -423,9 +423,6 @@ update msg model =
 
         SaveCustomFilter ->
             let
-                newApplying =
-                    not model.customFilterApplying
-
                 newModel =
                     { model
                         | customFilterApplying = True
@@ -457,6 +454,7 @@ getReliability boss remainMinuteInputValue =
                         remainMinute < 60
 
 
+updateDictionary : comparable -> Dict comparable Bool -> Dict comparable Bool
 updateDictionary label dict =
     Dict.update label
         (\mv -> Maybe.map not mv |> Maybe.withDefault True |> Just)
@@ -470,7 +468,6 @@ modelToViewOption model =
             \( k, v ) -> { name = k, toggle = v }
     in
     { regionFilter = List.map mapper <| Dict.toList model.regionFilter
-    , forceFilter = List.map mapper <| Dict.toList model.forceFilter
     , reliabilityFilter = List.map mapper <| Dict.toList model.reliabilityFilter
     , customFilter = Set.toList model.customFilter
     , sortPolicy = sortPolicyToString model.sortPolicy
@@ -485,7 +482,6 @@ applyViewOption vo model =
     in
     { model
         | regionFilter = Dict.fromList <| List.map mapper vo.regionFilter
-        , forceFilter = Dict.fromList <| List.map mapper vo.forceFilter
         , reliabilityFilter = Dict.fromList <| List.map mapper vo.reliabilityFilter
         , customFilter = Set.fromList vo.customFilter
         , sortPolicy = stringToSortPolicy vo.sortPolicy
@@ -579,6 +575,8 @@ filterContainerClass customFilterApplying =
                )
         )
 
+titleText : String
+titleText = "Linege 2M Field Boss Tracker"
 
 view : Model -> Document Msg
 view model =
@@ -588,13 +586,13 @@ view model =
                 getFilteredCycles model
 
         title =
-            "HASTOOL | Blade and Soul Revolution Field boss cycle tracker"
+            "HASTOOL | " ++ titleText
 
         body =
             [ header []
                 [ div [ class "title" ]
                     [ h1 [] [ text "HASTOOL" ]
-                    , h2 [] [ text "Blade and Soul Revolution Field Boss Tracker" ]
+                    , h2 [] [ text titleText ]
                     ]
                 ]
             , div [] [ text <| "サーバ: " ++ pageToServer model.page ]
@@ -606,21 +604,17 @@ view model =
                 ]
             , div [ filterContainerClass model.customFilterApplying ]
                 [ ul [ class "filter region" ]
-                    [ li [] [ filterText "大砂漠" model.regionFilter ToggleRegionFilter ]
-                    , li [] [ filterText "水月平原" model.regionFilter ToggleRegionFilter ]
-                    , li [] [ filterText "白青山脈" model.regionFilter ToggleRegionFilter ]
-                    , li [] [ filterText "入れ替わるFB" model.regionFilter ToggleRegionFilter ]
-                    , li [] [ filterText "月下渓谷(青)" model.regionFilter ToggleRegionFilter ]
-                    , li [] [ filterText "月下渓谷(赤)" model.regionFilter ToggleRegionFilter ]
-                    , li [] [ filterText "月下渓谷" model.regionFilter ToggleRegionFilter ]
+                    [ li [] [ filterText "グルーディオ地方" model.regionFilter ToggleRegionFilter ]
+                    , li [] [ filterText "ディオン地方" model.regionFilter ToggleRegionFilter ]
+                    , li [] [ filterText "ギラン地方" model.regionFilter ToggleRegionFilter ]
                     ]
                 ]
-            , div [ filterContainerClass model.customFilterApplying ]
-                [ ul [ class "filter region" ]
-                    [ li [] [ filterText "勢力ボス" model.forceFilter ToggleForceFilter ]
-                    , li [] [ filterText "非勢力ボス" model.forceFilter ToggleForceFilter ]
-                    ]
-                ]
+--            , div [ filterContainerClass model.customFilterApplying ]
+--                [ ul [ class "filter region" ]
+--                    [ li [] [ filterText "勢力ボス" model.forceFilter ToggleForceFilter ]
+--                    , li [] [ filterText "非勢力ボス" model.forceFilter ToggleForceFilter ]
+--                    ]
+--                ]
             , div [ filterContainerClass model.customFilterApplying ]
                 [ ul [ class "filter region" ]
                     [ li [] [ filterText "信憑性あり" model.reliabilityFilter ToggleReliabilityFilter ]
@@ -644,8 +638,7 @@ view model =
                 , tbody [] <| List.map (viewBossTimeline <| zonedNow model) ordered
                 ]
             , footer []
-                [ h5 [] [ text "Powered by Haskell at ケヤキ server" ]
-                , p [ class "description" ] [ text "ご要望・ご意見はささ下さい" ]
+                [ h5 [] [ text "Powered by Haskell at Blade and Soul revolution's ケヤキ server" ]
                 , p [] [ text <| Maybe.withDefault "" <| Maybe.map Json.Decode.errorToString model.error ]
                 , viewUpdateHistory
                 ]
@@ -670,7 +663,7 @@ view model =
 
 viewInBackdrop : List (Html Msg) -> List (Html Msg) -> List (Html Msg)
 viewInBackdrop body inner =
-    [ div [ class "container-body-and-backdrop" ] <| body ++ [ div [ class "backdrop", onClick CloseDialog ] [] ] ] ++ inner
+    (div [ class "container-body-and-backdrop" ] <| body ++ [ div [ class "backdrop", onClick CloseDialog ] [] ]) :: inner
 
 
 viewCustomFilterEditor : List FieldBossCycle -> Set FieldBossId -> Html Msg
@@ -705,27 +698,6 @@ viewCustomFilterEditor bossList targetBossIds =
                     ]
                ]
 
-
-
---    [ div [ class "dialog-contents" ] <|
---        ++
---        [ ul [] <|
---            List.map
---                (\boss ->
---                    li [ class "custom-filter-boss", onClick <| ToggleCustomFilterTarget boss ]
---                        [ checkbox "" (Set.member boss.id targetBossIds) <| ToggleCustomFilterTarget boss
---                        , fbIcon boss
---                        , span [] [ text boss.name ]
---                        ]
---                )
---            <|
---                List.sortBy .sortOrder bossList
---        , div [ class "btn-group" ]
---            [ button [ class "btn btn-sm btn-light", onClick CloseDialog ] [ text "キャンセル" ]
---            , button [ class "btn btn-sm btn-primary", onClick SaveCustomFilter ] [ text "保存" ]
---            ]
---        ]
---    ]
 
 
 viewReportText : Zone -> { boss : FieldBossCycle, repop : PopTime } -> Html Msg
@@ -817,9 +789,6 @@ inputErrorClass s =
 filterText : String -> Dict String Bool -> (String -> msg) -> Html msg
 filterText key dict action =
     let
-        v =
-            Dict.get key dict
-
         c =
             Maybe.withDefault True <| Dict.get key dict
     in
@@ -864,8 +833,7 @@ viewBossTimeline now boss =
         , td [ class "repop-info", onClick <| StartEdit boss ]
             [ ul
                 []
-                [ li [ class "label-region-and-area" ] [ text boss.region ]
-                , li [ class "label-region-and-area" ] [ text boss.area ]
+                [ li [ class "label-region-and-area" ] [ text boss.area ]
                 , li []
                     [ span [ class "label-time" ] [ text <| "討伐報告: " ++ ldt ]
                     , span [ class "fas fa-edit" ] []
@@ -878,7 +846,7 @@ viewBossTimeline now boss =
             [ span
                 [ class "time-bar"
                 , class <| timeBarColorClass repop.remainSeconds
-                , style "width" <| timeBarWidth repop now.time
+                , style "width" <| timeBarWidth repop
                 , onClick <| ShowReportText boss repop
                 ]
                 [ text <| "登場まで" ++ remainTimeText repop.remainSeconds
@@ -911,8 +879,8 @@ remainTimeText remainSeconds =
         "1時間以上"
 
 
-timeBarWidth : PopTime -> Posix -> String
-timeBarWidth popTime now =
+timeBarWidth : PopTime -> String
+timeBarWidth popTime =
     let
         oneHourSeconds =
             60 * 60
@@ -992,17 +960,5 @@ viewUpdateHistory : Html msg
 viewUpdateHistory =
     ul [ class "update-history" ]
         [ li [ class "description" ] [ text "更新履歴" ]
-        , li [ class "description" ] [ text "2020/11/01 サクラサーバについても通知が飛ぶようにしました。" ]
-        , li [ class "description" ] [ text "2020/08/21 ダイアログのボタンが押せないことがあるバグに対処しました。またカスタムフィルタを設定するときのボスに地域名を付記するようにしました。" ]
-        , li [ class "description" ] [ text "2020/08/11 新しい地域(異界第1章)のフィルボを追加しました。" ]
-        , li [ class "description" ] [ text "2020/05/12 新しい地域のフィルボを追加しました。" ]
-        , li [ class "description" ] [ text "2020/05/05 フィルボの登場が迫ると通知する機能を再提供します！通知にはPush7というサービスを使っていて、スマホにはPush7アプリのインストールが必要です。通知を受け取りたい方はページ一番下のボタンをタップして設定をお願いします。" ]
-        , li [ class "description" ] [ text "2020/04/18 自分の追いたいフィルボのみ表示する機能(カスタムフィルタ)を追加しました" ]
-        , li [ class "description" ] [ text "2020/04/05 試験的に、信憑性を表示するようにしました。登場予想が大きくずれていないと思われるフィルボは背景が赤になります。より詳しく説明すれば「1. どなたがが前回討伐時刻を報告した」「2. どなたがが残り何分で登場するかを明確に報告した」の２つの場合に、信憑性ありと判断されます。討伐予想時刻を過ぎたら、信憑性なしになります。" ]
-        , li [ class "description" ] [ text "2020/03/27 事情があり通知機能を切っています！ごめんなさい" ]
-        , li [ class "description" ] [ text "2020/03/21 フィルボの登場が迫ると通知する機能を追加しました。使ってみたい方はささでご連絡をお願いしますm(_ _)m" ]
-        , li [ class "description" ] [ text "2020/03/17 ページをリロードしてもフィルタと並び順が保存されるようにしました。" ]
-        , li [ class "description" ] [ text "2020/03/16 この更新履歴を表示するようにしました(ﾟ∀ﾟ\u{3000})" ]
-        , li [ class "description" ] [ text "2020/03/16 取り急ぎ、忘却の渓谷などの入れ替わっていくFBも表示するようにしました。かっこ悪いのでいつかは改善したいです。" ]
-        , li [ class "description" ] [ text "2020/03/13 タイムバーをタップすると他の人に出現を知らせるためのテキストを表示するようにしました。" ]
+        , li [ class "description" ] [ text "2021/04/24 リリース" ]
         ]

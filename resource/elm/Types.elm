@@ -32,8 +32,8 @@ type alias FieldBossCycle =
     { name : String
     , id : FieldBossId
     , serverId : String
-    , region : Region
     , area : Area
+    , region : Region 
     , force : Bool
     , repopIntervalMinutes : Int
     , lastDefeatedTime : Posix
@@ -48,8 +48,8 @@ fieldBossCycleDecoder =
         |> DP.required "name" D.string
         |> DP.required "id" D.string
         |> DP.required "serverId" D.string
-        |> DP.required "region" D.string
         |> DP.required "area" D.string
+        |> DP.required "region" D.string
         |> DP.required "force" D.bool
         |> DP.required "repopIntervalMinutes" D.int
         |> DP.required "lastDefeatedTime" (timestampDecoder |> D.andThen (D.succeed << timestampToPosix))
@@ -90,9 +90,6 @@ nextPopTime boss now =
 nextPopTimePlain : Posix -> Int -> Posix -> PopTime
 nextPopTimePlain last intervalMinutes now =
     let
-        nowMillis =
-            Time.posixToMillis now
-
         next =
             nextPopTimeInternal last intervalMinutes now
 
@@ -136,7 +133,6 @@ toggleStateDecoder =
 
 type alias ViewOption =
     { regionFilter : List ToggleState
-    , forceFilter : List ToggleState
     , reliabilityFilter : List ToggleState
     , customFilter : List String
     , sortPolicy : String
@@ -145,9 +141,8 @@ type alias ViewOption =
 
 viewOptionDecoder : Decoder ViewOption
 viewOptionDecoder =
-    D.map5 ViewOption
+    D.map4 ViewOption
         (D.field "regionFilter" <| D.list toggleStateDecoder)
-        (D.field "forceFilter" <| D.list toggleStateDecoder)
         (D.andThen
             (\m ->
                 case m of

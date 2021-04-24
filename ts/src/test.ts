@@ -1,6 +1,6 @@
 import * as sut from "./app";
 
-sut.setupServer("スモモ")
+sut.setupServer("テスト")
     .then(console.log)
     .catch(console.log);
 
