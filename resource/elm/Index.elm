@@ -802,7 +802,8 @@ viewBossTimeline now boss =
         , td [ class "repop-info", onClick <| StartEdit boss ]
             [ ul
                 []
-                [ li [ class "label-region-and-area" ] [ text boss.area ]
+                [ li [ class "label-region-and-area" ] [ text boss.region ]
+                , li [ class "label-region-and-area" ] [ text boss.area ]
                 , li []
                     [ span [ class "label-time" ] [ text <| "討伐報告: " ++ ldt ]
                     , span [ class "fas fa-edit" ] []
@@ -872,26 +873,14 @@ fbIcon boss =
 colorForRegion : Region -> String
 colorForRegion r =
     case r of
-        "大砂漠" ->
+        "グルーディオ地方" ->
             "#cea877"
 
-        "水月平原" ->
+        "ディオン地方" ->
             "#000080"
 
-        "白青山脈" ->
+        "ギラン地方" ->
             "#696969"
-
-        "入れ替わるFB" ->
-            "#800000"
-
-        "月下渓谷(青)" ->
-            "#003000"
-
-        "月下渓谷(赤)" ->
-            "#003000"
-
-        "月下渓谷" ->
-            "#003000"
 
         _ ->
             "#000000"

@@ -92,7 +92,7 @@ export function prepareNotification() {
             if (result === "granted") {
                 console.log("Notification: OK");
             } else {
-                console.log("Notification: ermission denied.");
+                console.log("Notification: permission denied.");
             }
         });
 }
