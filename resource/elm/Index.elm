@@ -561,7 +561,7 @@ view model =
                 getFilteredCycles model
 
         title =
-            "HASTOOL | " ++ titleText
+            titleText ++ " | HASTOOL"
 
         body =
             [ header []
