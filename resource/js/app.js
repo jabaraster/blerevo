@@ -33,12 +33,7 @@ Funcs.onAuthStateChanged((user) => {
 // })
 ports.requestLogout.subscribe(() => {
   Funcs.logout(() => {
-    console.log('Funcs.logout handler', ports)
-    try {
-      ports.receiveLogout.send()
-    } catch (err) {
-      console.log(err)
-    }
+    // ports.receiveLogout.send()
   })
 })
 

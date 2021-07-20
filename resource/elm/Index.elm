@@ -457,7 +457,7 @@ update msg model =
                     ( { model | loginUser = Just hastoolUser }, Cmd.none )
 
         Logout ->
-            ( model, Ports.requestLogout () )
+            ( { model | loginUser = Nothing, showAuthDialog = False }, Ports.requestLogout () )
 
         ReceiveLogout _ ->
             ( { model | loginUser = Nothing, showAuthDialog = False }, Cmd.none )
