@@ -26,15 +26,8 @@ ports.requestLoadCycles.subscribe((server) => {
 Funcs.onAuthStateChanged((user) => {
   ports.receiveAuthStateChanged.send(user)
 })
-// ports.requestStartAuthUi.subscribe(() => {
-//   Funcs.startAuthUi(() => {
-//     //ports.receiveAuthUiShown.send()
-//   })
-// })
 ports.requestLogout.subscribe(() => {
-  Funcs.logout(() => {
-    // ports.receiveLogout.send()
-  })
+  Funcs.logout()
 })
 
 ports.requestUpdateDefeatedTime.subscribe(({ server, bossIdAtServer, time, reliability }) => {
@@ -56,3 +49,7 @@ ports.requestGetViewOption.subscribe(_ => {
     ports.receiveViewOption.send(ret.result);
   }
 });
+
+ports.requestRegisterNotification.subscribe(() => {
+  Funcs.registerNotification()
+})

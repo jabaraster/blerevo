@@ -21,3 +21,5 @@ port receiveAuthStateChanged : (Value -> msg) -> Sub msg
 port requestLogout : () -> Cmd msg
 
 port receiveLogout : (() -> msg) -> Sub msg
+
+port requestRegisterNotification : () -> Cmd msg

@@ -87,7 +87,7 @@ type Msg
     | SaveCustomFilter
     | ShowAuthDialog
     | Logout
-    | ReceiveLogout ()
+    | RequestRegisterNotification
 
 
 init : () -> Url -> Key -> ( Model, Cmd Msg )
@@ -139,7 +139,6 @@ subscriptions _ =
         , Ports.receiveUpdate ReceiveUpdate
         , Ports.receiveViewOption ReceiveViewOption
         , Ports.receiveAuthStateChanged ReceiveAuthStateChanged
-        , Ports.receiveLogout ReceiveLogout
         ]
 
 
@@ -459,8 +458,8 @@ update msg model =
         Logout ->
             ( { model | loginUser = Nothing, showAuthDialog = False }, Ports.requestLogout () )
 
-        ReceiveLogout _ ->
-            ( { model | loginUser = Nothing, showAuthDialog = False }, Cmd.none )
+        RequestRegisterNotification ->
+            ( model, Ports.requestRegisterNotification ())
 
 
 getReliability : FieldBossCycle -> String -> Bool
@@ -666,6 +665,9 @@ view model =
                 ]
             , div [] [ text <| "サーバ: " ++ pageToServer model.page ]
             , viewAuthDialog model
+            , div [] [
+                button [ class "btn btn-sm btn-success", onClick RequestRegisterNotification ] [text "通知を設定"]
+            ]
             , div [ class "filter-container" ]
                 [ ul [ class "filter region" ]
                     [ li [] [ checkbox "カスタムフィルタ" model.customFilterApplying ToggleCustomFilterApplying ]

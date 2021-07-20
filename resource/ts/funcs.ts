@@ -1,5 +1,8 @@
-import * as firebase from "firebase";
-import * as firebaseui from "firebaseui-ja";
+import firebase from "firebase";
+import firebaseui from "firebaseui-ja";
+// import "firebase/auth";
+// import "firebase/firestore";
+// import "firebase/messaging";
 
 const COLLECTION_ID = "field-boss-cycle-2";
 
@@ -31,6 +34,9 @@ firebase.initializeApp({
     measurementId: "G-2YYBYEEG7G"
 });
 
+/***************************************************
+ * Authentication.
+ ***************************************************/
 const authUi = new firebaseui.auth.AuthUI(firebase.auth())
 let authStateChangedHandler = (user: any) => {}
 let loginUser: any;
@@ -38,24 +44,21 @@ firebase.auth().onAuthStateChanged((user) => {
     if (authStateChangedHandler) {
         authStateChangedHandler(user)
     }
+});
+authUi.start('#firebaseui-auth-container', {
+    callbacks: {
+        signInSuccessWithAuthResult: (authResult, redirectUrl) => {
+          return true;
+        },
+        uiShown: function() {
+        }
+      },
+      signInSuccessUrl: '/',
+      signInOptions: [
+        firebase.auth.GoogleAuthProvider.PROVIDER_ID,
+        firebase.auth.TwitterAuthProvider.PROVIDER_ID,
+      ],
 })
-function startAuthUi() {
-    authUi.start('#firebaseui-auth-container', {
-        callbacks: {
-            signInSuccessWithAuthResult: (authResult, redirectUrl) => {
-              return true;
-            },
-            uiShown: function() {
-            }
-          },
-          signInSuccessUrl: '/',
-          signInOptions: [
-            firebase.auth.GoogleAuthProvider.PROVIDER_ID,
-            firebase.auth.TwitterAuthProvider.PROVIDER_ID,
-          ],
-    })
-}
-startAuthUi()
 export function onAuthStateChanged(handler) {
     authStateChangedHandler = handler
     if (!loginUser) {
@@ -63,13 +66,14 @@ export function onAuthStateChanged(handler) {
     }
 }
 
-export async function logout(handler) {
+export async function logout() {
     await firebase.auth().signOut()
-    handler()
 }
 
+/***************************************************
+ * Datastore.
+ ***************************************************/
 const firestore = firebase.firestore();
-
 export async function updateDefeatedTime(server: string, bossIdAtServer: string, time: Timestamp, reliability: boolean): Promise<void> {
     const doc = await firestore.doc(`${COLLECTION_ID}/${server}/cycles/${bossIdAtServer}`)
     await doc.update({
@@ -130,13 +134,21 @@ export function getViewOption(): ViewOptionResult {
         }
     }
 }
-export function prepareNotification() {
-    Notification.requestPermission()
-        .then(result => {
-            if (result === "granted") {
-                console.log("Notification: OK");
-            } else {
-                console.log("Notification: permission denied.");
-            }
-        });
+
+/***************************************************
+ * Notification.
+ ***************************************************/
+export async function registerNotification(): Promise<string> {
+    try {
+        const messaging = firebase.messaging();
+        const token = await messaging.getToken()
+        console.log(token)
+        // TODO このtokenは通知先の限定に使う.
+        messaging.onMessage((payload) => {
+            console.log(payload)
+        })
+        return token
+    } catch (err) {
+        console.info(err)
+    }
 }
