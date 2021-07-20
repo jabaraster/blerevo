@@ -13,7 +13,6 @@ import Ports
 import Set exposing (Set)
 import Task
 import Time exposing (Posix, Zone)
-import Time exposing (Posix, Zone)
 import Time.Extra exposing (Interval(..))
 import Times exposing (ZonedTime)
 import Types exposing (..)
@@ -55,6 +54,8 @@ type alias Model =
     , remainMinuteInputValue : String
     , reportText : Maybe { boss : FieldBossCycle, repop : PopTime }
     , editCustomFilter : Maybe (Set FieldBossId)
+    , showAuthDialog : Bool
+    , loginUser : Maybe HastoolUser
     }
 
 
@@ -81,8 +82,12 @@ type Msg
     | ShowReportText FieldBossCycle PopTime
     | SelectReportText
     | ReceiveViewOption Value
+    | ReceiveAuthStateChanged Value
     | ShowCustomFilterEditor
     | SaveCustomFilter
+    | ShowAuthDialog
+    | Logout
+    | ReceiveLogout ()
 
 
 init : () -> Url -> Key -> ( Model, Cmd Msg )
@@ -108,6 +113,8 @@ init _ url key =
       , remainMinuteInputValue = ""
       , reportText = Nothing
       , editCustomFilter = Nothing
+      , showAuthDialog = False
+      , loginUser = Nothing
       }
     , Cmd.batch
         [ Task.perform GetZone Time.here
@@ -131,9 +138,12 @@ subscriptions _ =
         , Ports.receiveCycles ReceiveCycles
         , Ports.receiveUpdate ReceiveUpdate
         , Ports.receiveViewOption ReceiveViewOption
+        , Ports.receiveAuthStateChanged ReceiveAuthStateChanged
+        , Ports.receiveLogout ReceiveLogout
         ]
 
 
+defaultServer : String
 defaultServer =
     "ケヤキ"
 
@@ -351,6 +361,7 @@ update msg model =
 
                     else
                         model.customFilterApplying
+                , showAuthDialog = False
               }
             , Cmd.none
             )
@@ -423,9 +434,6 @@ update msg model =
 
         SaveCustomFilter ->
             let
-                newApplying =
-                    not model.customFilterApplying
-
                 newModel =
                     { model
                         | customFilterApplying = True
@@ -436,6 +444,23 @@ update msg model =
             ( newModel
             , Ports.requestSaveViewOption <| modelToViewOption newModel
             )
+
+        ShowAuthDialog ->
+            ( { model | showAuthDialog = True }, Cmd.none )
+
+        ReceiveAuthStateChanged v ->
+            case Json.Decode.decodeValue Types.hastoolUserDecoder v of
+                Err e ->
+                    ( { model | error = Just e }, Cmd.none )
+
+                Ok hastoolUser ->
+                    ( { model | loginUser = Just hastoolUser }, Cmd.none )
+
+        Logout ->
+            ( model, Ports.requestLogout () )
+
+        ReceiveLogout _ ->
+            ( { model | loginUser = Nothing, showAuthDialog = False }, Cmd.none )
 
 
 getReliability : FieldBossCycle -> String -> Bool
@@ -457,6 +482,7 @@ getReliability boss remainMinuteInputValue =
                         remainMinute < 60
 
 
+updateDictionary : String -> Dict String Bool -> Dict String Bool
 updateDictionary label dict =
     Dict.update label
         (\mv -> Maybe.map not mv |> Maybe.withDefault True |> Just)
@@ -580,6 +606,46 @@ filterContainerClass customFilterApplying =
         )
 
 
+viewAuthDialog : Model -> Html Msg
+viewAuthDialog model =
+    let
+        c =
+            case model.loginUser of
+                Just user ->
+                    [ div [ id "firebaseui-auth-container", class "hidden" ] []
+                    , button [ class "btn btn-sm btn-success", onClick Logout ] [ text "ログアウト" ]
+                    , span [] [ text user.displayName ]
+                    , span [] [ text user.uid ]
+                    ]
+
+                Nothing ->
+                    [ div [ id "firebaseui-auth-container" ] [] ]
+    in
+    div
+        [ class "backdrop"
+        , onClick CloseDialog
+        , class
+            (if model.showAuthDialog then
+                ""
+
+             else
+                "hidden"
+            )
+        ]
+        [ div
+            [ class "dialog-contents"
+            , class
+                (if model.showAuthDialog then
+                    ""
+
+                 else
+                    "hidden"
+                )
+            ]
+            c
+        ]
+
+
 view : Model -> Document Msg
 view model =
     let
@@ -596,8 +662,10 @@ view model =
                     [ h1 [] [ text "HASTOOL" ]
                     , h2 [] [ text "Blade and Soul Revolution Field Boss Tracker" ]
                     ]
+                , button [ class "fa fa-bars", onClick ShowAuthDialog ] []
                 ]
             , div [] [ text <| "サーバ: " ++ pageToServer model.page ]
+            , viewAuthDialog model
             , div [ class "filter-container" ]
                 [ ul [ class "filter region" ]
                     [ li [] [ checkbox "カスタムフィルタ" model.customFilterApplying ToggleCustomFilterApplying ]
@@ -653,24 +721,24 @@ view model =
     in
     { title = title
     , body =
-        case ( model.editTarget, model.reportText, model.editCustomFilter ) of
-            ( Nothing, Nothing, Nothing ) ->
+        case ( ( model.editTarget, model.reportText ), model.editCustomFilter ) of
+            ( ( Nothing, Nothing ), Nothing ) ->
                 body
 
-            ( Just _, _, _ ) ->
+            ( ( Just _, _ ), _ ) ->
                 viewInBackdrop body <| viewEditor model
 
-            ( _, Just report, _ ) ->
+            ( ( _, Just report ), _ ) ->
                 viewInBackdrop body <| [ viewReportText model.zone report ]
 
-            ( _, _, Just bossIds ) ->
+            ( ( _, _ ), Just bossIds ) ->
                 viewInBackdrop body <| [ viewCustomFilterEditor (Result.withDefault [] model.cycles) bossIds ]
     }
 
 
 viewInBackdrop : List (Html Msg) -> List (Html Msg) -> List (Html Msg)
 viewInBackdrop body inner =
-    [ div [ class "container-body-and-backdrop" ] <| body ++ [ div [ class "backdrop", onClick CloseDialog ] [] ] ] ++ inner
+    (div [ class "container-body-and-backdrop" ] <| body ++ [ div [ class "backdrop", onClick CloseDialog ] [] ]) :: inner
 
 
 viewCustomFilterEditor : List FieldBossCycle -> Set FieldBossId -> Html Msg
@@ -684,10 +752,10 @@ viewCustomFilterEditor bossList targetBossIds =
                 div [ class "custom-filter-boss", onClick <| ToggleCustomFilterTarget boss ]
                     [ checkbox "" (Set.member boss.id targetBossIds) <| ToggleCustomFilterTarget boss
                     , fbIcon boss
-                    , div [ class "custom-filter-boss-label" ] [
-                     span [ class "custom-filter-boss-area" ] [ text boss.area ]
-                    , span [ class "custom-filter-boss-name" ] [ text boss.name ]
-                    ]
+                    , div [ class "custom-filter-boss-label" ]
+                        [ span [ class "custom-filter-boss-area" ] [ text boss.area ]
+                        , span [ class "custom-filter-boss-name" ] [ text boss.name ]
+                        ]
                     ]
     in
     div [ class "dialog-contents" ] <|
@@ -704,28 +772,6 @@ viewCustomFilterEditor bossList targetBossIds =
                     , button [ class "btn btn-sm btn-primary", onClick SaveCustomFilter ] [ text "保存" ]
                     ]
                ]
-
-
-
---    [ div [ class "dialog-contents" ] <|
---        ++
---        [ ul [] <|
---            List.map
---                (\boss ->
---                    li [ class "custom-filter-boss", onClick <| ToggleCustomFilterTarget boss ]
---                        [ checkbox "" (Set.member boss.id targetBossIds) <| ToggleCustomFilterTarget boss
---                        , fbIcon boss
---                        , span [] [ text boss.name ]
---                        ]
---                )
---            <|
---                List.sortBy .sortOrder bossList
---        , div [ class "btn-group" ]
---            [ button [ class "btn btn-sm btn-light", onClick CloseDialog ] [ text "キャンセル" ]
---            , button [ class "btn btn-sm btn-primary", onClick SaveCustomFilter ] [ text "保存" ]
---            ]
---        ]
---    ]
 
 
 viewReportText : Zone -> { boss : FieldBossCycle, repop : PopTime } -> Html Msg

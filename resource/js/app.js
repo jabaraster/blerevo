@@ -23,6 +23,25 @@ ports.requestLoadCycles.subscribe((server) => {
     });
 });
 
+Funcs.onAuthStateChanged((user) => {
+  ports.receiveAuthStateChanged.send(user)
+})
+// ports.requestStartAuthUi.subscribe(() => {
+//   Funcs.startAuthUi(() => {
+//     //ports.receiveAuthUiShown.send()
+//   })
+// })
+ports.requestLogout.subscribe(() => {
+  Funcs.logout(() => {
+    console.log('Funcs.logout handler', ports)
+    try {
+      ports.receiveLogout.send()
+    } catch (err) {
+      console.log(err)
+    }
+  })
+})
+
 ports.requestUpdateDefeatedTime.subscribe(({ server, bossIdAtServer, time, reliability }) => {
   Funcs.updateDefeatedTime(server, bossIdAtServer, time, reliability)
     .then(res => {

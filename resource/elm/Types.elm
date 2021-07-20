@@ -1,4 +1,4 @@
-module Types exposing (Area, FieldBossCycle, FieldBossId, PopTime, Region, SortPolicy(..), Timestamp, ToggleState, ViewOption, fieldBossCycleDecoder, nextPopTime, nextPopTimeInternal, nextPopTimePlain, posixToTimestamp, sortPolicyToString, stringToSortPolicy, timestampDecoder, timestampToPosix, toggleStateDecoder, viewOptionDecoder)
+module Types exposing (Area, FieldBossCycle, FieldBossId, HastoolUser, PopTime, Region, SortPolicy(..), Timestamp, ToggleState, ViewOption, fieldBossCycleDecoder, hastoolUserDecoder, nextPopTime, nextPopTimeInternal, nextPopTimePlain, posixToTimestamp, sortPolicyToString, stringToSortPolicy, timestampDecoder, timestampToPosix, toggleStateDecoder, viewOptionDecoder)
 
 import Json.Decode as D exposing (Decoder)
 import Json.Decode.Pipeline as DP
@@ -196,3 +196,27 @@ sortPolicyToString policy =
 
         NextPopTimeOrder ->
             "NextPopTimeOrder"
+
+
+type alias HastoolUser =
+    { uid : String
+    , displayName : String
+    }
+
+
+type alias AuthProvider =
+    { providerId : String
+    }
+
+
+authProviderDecoder : Decoder AuthProvider
+authProviderDecoder =
+    D.map AuthProvider
+        (D.field "providerId" D.string)
+
+
+hastoolUserDecoder : Decoder HastoolUser
+hastoolUserDecoder =
+    D.map2 HastoolUser
+        (D.field "uid" D.string)
+        (D.field "displayName" D.string)
