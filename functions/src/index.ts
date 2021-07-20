@@ -1,5 +1,6 @@
 import * as functions from 'firebase-functions';
-import * as Firebase from "firebase";
+import * as firebase from "firebase";
+import * as admin from "firebase-admin";
 import Axios from "axios";
 
 const COLLECTION_ID = "field-boss-cycle-2";
@@ -7,10 +8,34 @@ const RE_NOTIFICATION_THRESHOLD = 10;
 const WITHIN_MINUTE_NORMAL_BOSS = 3;
 const WITHIN_MINUTE_REPLACE_BOSS = 6;
 
-Firebase.initializeApp({
+// firebase.initializeApp({
+//     projectId: "blade-and-soul-field-bos-c21bf",
+// });
+
+firebase.initializeApp({
+    credential: admin.credential.applicationDefault(),
+    apiKey: "AIzaSyA8OgTiooOW4F97YTBVw5PuaR1p9oo4R9g",
+    authDomain: "blade-and-soul-field-bos-c21bf.firebaseapp.com",
+    databaseURL: "https://blade-and-soul-field-bos-c21bf.firebaseio.com",
     projectId: "blade-and-soul-field-bos-c21bf",
+    storageBucket: "blade-and-soul-field-bos-c21bf.appspot.com",
+    messagingSenderId: "176293133121",
+    appId: "1:176293133121:web:570cb3854312fea1ab7fc0",
+    measurementId: "G-2YYBYEEG7G"
 });
-const firestore = Firebase.firestore();
+
+
+const firestore = firebase.firestore();
+
+export async function sendMessageSample() {
+    admin.messaging().send({
+        notification: {
+            title: "テスト",
+            body: "テストです。",
+        },
+        token: "e2YyuleA7hBW2LjWZUMiyg:APA91bGXyxtjSXYs2tQyhnifNBU9J_B8AQjrc_hAnu1kVJWPQVRB8u_j0R9Q1KbJ9w6jC9u9ktI01Ze7OgGSloaXYJELGm2O0IHT7Urf1MwgDtjo3QKXraZ_zMOx7pO47g0EZz7vsFws"
+    })
+}
 
 function env(name: string): string {
     const notf = functions.config().notification;
@@ -117,7 +142,7 @@ interface FieldBossCycle {
     region: string;
     area: string;
     force: boolean,
-    lastDefeatedTime: Firebase.firestore.Timestamp;
+    lastDefeatedTime: firebase.firestore.Timestamp;
     repopIntervalMinutes: number;
     sortOrder: number;
     reliability : boolean;
@@ -126,7 +151,7 @@ interface ExFieldBossCycle extends FieldBossCycle {
     nextPopTime: Date;
 }
 
-type Notificated = Firebase.firestore.QueryDocumentSnapshot<Firebase.firestore.DocumentData>;
+type Notificated = firebase.firestore.QueryDocumentSnapshot<firebase.firestore.DocumentData>;
 
 function nextPopTime(now: Date, boss: FieldBossCycle): Date {
     let t = null;
@@ -137,11 +162,11 @@ function nextPopTime(now: Date, boss: FieldBossCycle): Date {
     return t;
 }
 
-function getBossCycleListCollection(server: string): Firebase.firestore.CollectionReference<Firebase.firestore.DocumentData> {
+function getBossCycleListCollection(server: string): firebase.firestore.CollectionReference<firebase.firestore.DocumentData> {
     return firestore.collection(`${COLLECTION_ID}/${server}/cycles/`);
 }
 
-function getNotificatedCollection(server: string): Firebase.firestore.CollectionReference<Firebase.firestore.DocumentData> {
+function getNotificatedCollection(server: string): firebase.firestore.CollectionReference<firebase.firestore.DocumentData> {
     return firestore.collection(`${COLLECTION_ID}/${server}/notificated/`);
 }
 
