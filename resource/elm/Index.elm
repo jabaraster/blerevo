@@ -459,7 +459,7 @@ update msg model =
             ( { model | loginUser = Nothing, showAuthDialog = False }, Ports.requestLogout () )
 
         RequestRegisterNotification ->
-            ( model, Ports.requestRegisterNotification ())
+            ( model, Ports.requestRegisterNotification () )
 
 
 getReliability : FieldBossCycle -> String -> Bool
@@ -645,6 +645,17 @@ viewAuthDialog model =
         ]
 
 
+viewHeader : Html Msg
+viewHeader =
+    header []
+        [ div [ class "title" ]
+            [ h1 [] [ text "HASTOOL" ]
+            , h2 [] [ text "Blade and Soul Revolution Field Boss Tracker" ]
+            ]
+        , button [ class "fa fa-bars", onClick ShowAuthDialog ] []
+        ]
+
+
 view : Model -> Document Msg
 view model =
     let
@@ -656,18 +667,9 @@ view model =
             "HASTOOL | Blade and Soul Revolution Field boss cycle tracker"
 
         body =
-            [ header []
-                [ div [ class "title" ]
-                    [ h1 [] [ text "HASTOOL" ]
-                    , h2 [] [ text "Blade and Soul Revolution Field Boss Tracker" ]
-                    ]
-                , button [ class "fa fa-bars", onClick ShowAuthDialog ] []
-                ]
+            [ viewHeader
             , div [] [ text <| "サーバ: " ++ pageToServer model.page ]
             , viewAuthDialog model
-            , div [] [
-                button [ class "btn btn-sm btn-success", onClick RequestRegisterNotification ] [text "通知を設定"]
-            ]
             , div [ class "filter-container" ]
                 [ ul [ class "filter region" ]
                     [ li [] [ checkbox "カスタムフィルタ" model.customFilterApplying ToggleCustomFilterApplying ]
@@ -711,7 +713,7 @@ view model =
                         , td [ class "label-now" ] [ text <| Times.omitSecond <| Times.addHour 1 <| zonedNow model ]
                         ]
                     ]
-                , tbody [] <| List.map (viewBossTimeline <| zonedNow model) ordered
+                , tbody [] <| List.map (viewBossTimeline (zonedNow model) model.loginUser) ordered
                 ]
             , footer []
                 [ h5 [] [ text "Powered by Haskell at ケヤキ server" ]
@@ -879,8 +881,8 @@ circle th =
     div [ class <| "circle-" ++ th ++ "-container" ] [ div [ class <| "circle-" ++ th ] [] ]
 
 
-viewBossTimeline : ZonedTime -> FieldBossCycle -> Html Msg
-viewBossTimeline now boss =
+viewBossTimeline : ZonedTime -> Maybe loginUser -> FieldBossCycle -> Html Msg
+viewBossTimeline now mLoginUser boss =
     let
         nextPopTime =
             Types.nextPopTime boss now.time
@@ -929,10 +931,22 @@ viewBossTimeline now boss =
                 , style "width" <| timeBarWidth repop now.time
                 , onClick <| ShowReportText boss repop
                 ]
-                [ text <| "登場まで" ++ remainTimeText repop.remainSeconds
+                [span
+                    [ class "notification-switcher"
+                    , class <| Maybe.withDefault "fas fa-bell-slash" <| Maybe.map (identity "fas fa-bell") mLoginUser
+                    , class <| Maybe.withDefault "unnotification" <| Maybe.map (identity "notification") mLoginUser
+                    , onClick Show
+                    ]
+                    []
+                , text <| "登場まで" ++ remainTimeText repop.remainSeconds
                 ]
             ]
         ]
+
+
+identity : a -> b -> a
+identity v _ =
+    v
 
 
 timeBarColorClass : Int -> String

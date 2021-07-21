@@ -72,3 +72,4 @@ resource/elm-stuff/
 functions/env.sh
 dist/
 .cache/
+resource/.parcel-cache/

@@ -12,8 +12,13 @@ const WITHIN_MINUTE_REPLACE_BOSS = 6;
 //     projectId: "blade-and-soul-field-bos-c21bf",
 // });
 
+const serviceAccount = require("./serviceAccount.json")
+
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+});
+
 firebase.initializeApp({
-    credential: admin.credential.applicationDefault(),
     apiKey: "AIzaSyA8OgTiooOW4F97YTBVw5PuaR1p9oo4R9g",
     authDomain: "blade-and-soul-field-bos-c21bf.firebaseapp.com",
     databaseURL: "https://blade-and-soul-field-bos-c21bf.firebaseio.com",
@@ -28,12 +33,13 @@ firebase.initializeApp({
 const firestore = firebase.firestore();
 
 export async function sendMessageSample() {
-    admin.messaging().send({
+    console.log('sendMessageSample')
+    await admin.messaging().send({
         notification: {
             title: "テスト",
             body: "テストです。",
         },
-        token: "e2YyuleA7hBW2LjWZUMiyg:APA91bGXyxtjSXYs2tQyhnifNBU9J_B8AQjrc_hAnu1kVJWPQVRB8u_j0R9Q1KbJ9w6jC9u9ktI01Ze7OgGSloaXYJELGm2O0IHT7Urf1MwgDtjo3QKXraZ_zMOx7pO47g0EZz7vsFws"
+        token: "cp5h4wvnlkLW4kY39kAdKn:APA91bHWCfFMI5eiN3lo6yv0y2dFZSR149RBYEvlKRvJzh16xgEurFrDlA82XQGLgLeUOJ-Q4vF6QGLi1s7cnsbDLnVnuX1kGx0j6t4xt5g9yuOXdxLQnxFg0492apUp8I7UDj2dctRl"
     })
 }
 

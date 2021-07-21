@@ -1,8 +1,5 @@
 import firebase from "firebase";
 import firebaseui from "firebaseui-ja";
-// import "firebase/auth";
-// import "firebase/firestore";
-// import "firebase/messaging";
 
 const COLLECTION_ID = "field-boss-cycle-2";
 
@@ -37,7 +34,6 @@ firebase.initializeApp({
 /***************************************************
  * Authentication.
  ***************************************************/
-const authUi = new firebaseui.auth.AuthUI(firebase.auth())
 let authStateChangedHandler = (user: any) => {}
 let loginUser: any;
 firebase.auth().onAuthStateChanged((user) => {
@@ -45,19 +41,19 @@ firebase.auth().onAuthStateChanged((user) => {
         authStateChangedHandler(user)
     }
 });
-authUi.start('#firebaseui-auth-container', {
+new firebaseui.auth.AuthUI(firebase.auth()).start('#firebaseui-auth-container', {
     callbacks: {
         signInSuccessWithAuthResult: (authResult, redirectUrl) => {
-          return true;
+            return false;
         },
         uiShown: function() {
         }
-      },
-      signInSuccessUrl: '/',
-      signInOptions: [
+    },
+    signInSuccessUrl: '/',
+    signInOptions: [
         firebase.auth.GoogleAuthProvider.PROVIDER_ID,
         firebase.auth.TwitterAuthProvider.PROVIDER_ID,
-      ],
+    ],
 })
 export function onAuthStateChanged(handler) {
     authStateChangedHandler = handler
