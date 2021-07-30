@@ -88,6 +88,7 @@ type Msg
     | ShowAuthDialog
     | Logout
     | RequestRegisterNotification
+    | SwitchNotification FieldBossCycle
 
 
 init : () -> Url -> Key -> ( Model, Cmd Msg )
@@ -461,6 +462,9 @@ update msg model =
         RequestRegisterNotification ->
             ( model, Ports.requestRegisterNotification () )
 
+        SwitchNotification _ ->
+            ( model, Debug.todo "not implemented.")
+
 
 getReliability : FieldBossCycle -> String -> Bool
 getReliability boss remainMinuteInputValue =
@@ -652,7 +656,7 @@ viewHeader =
             [ h1 [] [ text "HASTOOL" ]
             , h2 [] [ text "Blade and Soul Revolution Field Boss Tracker" ]
             ]
-        , button [ class "fa fa-bars", onClick ShowAuthDialog ] []
+        , button [ class "fa fa-bars main-menu-button", onClick ShowAuthDialog ] []
         ]
 
 
@@ -881,7 +885,7 @@ circle th =
     div [ class <| "circle-" ++ th ++ "-container" ] [ div [ class <| "circle-" ++ th ] [] ]
 
 
-viewBossTimeline : ZonedTime -> Maybe loginUser -> FieldBossCycle -> Html Msg
+viewBossTimeline : ZonedTime -> Maybe HastoolUser -> FieldBossCycle -> Html Msg
 viewBossTimeline now mLoginUser boss =
     let
         nextPopTime =
@@ -935,7 +939,8 @@ viewBossTimeline now mLoginUser boss =
                     [ class "notification-switcher"
                     , class <| Maybe.withDefault "fas fa-bell-slash" <| Maybe.map (identity "fas fa-bell") mLoginUser
                     , class <| Maybe.withDefault "unnotification" <| Maybe.map (identity "notification") mLoginUser
-                    , onClick Show
+                    , class <| Maybe.withDefault "hidden" <| Maybe.map (identity "") mLoginUser
+                    , onClick <| SwitchNotification boss
                     ]
                     []
                 , text <| "登場まで" ++ remainTimeText repop.remainSeconds

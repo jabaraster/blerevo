@@ -1,6 +1,7 @@
 import * as _ from "../less/style.less";
 import { Elm } from "../elm/Index.elm";
-import * as Funcs from "../ts/funcs";
+import * as funcs from "../ts/funcs";
+import * as auth from "../ts/auth";
 
 var app = Elm.Index.init();
 var ports = app.ports;
@@ -14,7 +15,7 @@ ports.requestLoadCycles.subscribe((server) => {
   const callback = (boss) => {
     ports.receiveUpdate.send(boss);
   };
-  Funcs.listCycles(server, callback)
+  funcs.listCycles(server, callback)
     .then(res => {
       ports.receiveCycles.send(res);
     })
@@ -23,15 +24,15 @@ ports.requestLoadCycles.subscribe((server) => {
     });
 });
 
-Funcs.onAuthStateChanged((user) => {
+auth.onAuthStateChanged((user) => {
   ports.receiveAuthStateChanged.send(user)
 })
 ports.requestLogout.subscribe(() => {
-  Funcs.logout()
+  auth.logout()
 })
 
 ports.requestUpdateDefeatedTime.subscribe(({ server, bossIdAtServer, time, reliability }) => {
-  Funcs.updateDefeatedTime(server, bossIdAtServer, time, reliability)
+  funcs.updateDefeatedTime(server, bossIdAtServer, time, reliability)
     .then(res => {
       // 処理なし
     })
@@ -41,15 +42,15 @@ ports.requestUpdateDefeatedTime.subscribe(({ server, bossIdAtServer, time, relia
 });
 
 ports.requestSaveViewOption.subscribe((viewOption) => {
-  Funcs.saveViewOption(viewOption);
+  funcs.saveViewOption(viewOption);
 });
 ports.requestGetViewOption.subscribe(_ => {
-  const ret = Funcs.getViewOption();
+  const ret = funcs.getViewOption();
   if (ret.exists) {
     ports.receiveViewOption.send(ret.result);
   }
 });
 
 ports.requestRegisterNotification.subscribe(() => {
-  Funcs.registerNotification()
+  funcs.registerNotification()
 })

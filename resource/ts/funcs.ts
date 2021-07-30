@@ -1,5 +1,4 @@
-import firebase from "firebase";
-import firebaseui from "firebaseui-ja";
+import funcs from "firebase";
 
 const COLLECTION_ID = "field-boss-cycle-2";
 
@@ -20,7 +19,7 @@ interface FieldBossCycle {
     sortOrder: number;
 }
 
-firebase.initializeApp({
+funcs.initializeApp({
     apiKey: "AIzaSyA8OgTiooOW4F97YTBVw5PuaR1p9oo4R9g",
     authDomain: "blade-and-soul-field-bos-c21bf.firebaseapp.com",
     databaseURL: "https://blade-and-soul-field-bos-c21bf.firebaseio.com",
@@ -32,44 +31,9 @@ firebase.initializeApp({
 });
 
 /***************************************************
- * Authentication.
- ***************************************************/
-let authStateChangedHandler = (user: any) => {}
-let loginUser: any;
-firebase.auth().onAuthStateChanged((user) => {
-    if (authStateChangedHandler) {
-        authStateChangedHandler(user)
-    }
-});
-new firebaseui.auth.AuthUI(firebase.auth()).start('#firebaseui-auth-container', {
-    callbacks: {
-        signInSuccessWithAuthResult: (authResult, redirectUrl) => {
-            return false;
-        },
-        uiShown: function() {
-        }
-    },
-    signInSuccessUrl: '/',
-    signInOptions: [
-        firebase.auth.GoogleAuthProvider.PROVIDER_ID,
-        firebase.auth.TwitterAuthProvider.PROVIDER_ID,
-    ],
-})
-export function onAuthStateChanged(handler) {
-    authStateChangedHandler = handler
-    if (!loginUser) {
-        handler(loginUser)
-    }
-}
-
-export async function logout() {
-    await firebase.auth().signOut()
-}
-
-/***************************************************
  * Datastore.
  ***************************************************/
-const firestore = firebase.firestore();
+const firestore = funcs.firestore();
 export async function updateDefeatedTime(server: string, bossIdAtServer: string, time: Timestamp, reliability: boolean): Promise<void> {
     const doc = await firestore.doc(`${COLLECTION_ID}/${server}/cycles/${bossIdAtServer}`)
     await doc.update({
@@ -78,7 +42,7 @@ export async function updateDefeatedTime(server: string, bossIdAtServer: string,
     })
 }
 
-export async function listCycles(server: string, updateCallback:(FieldBossCycle) => void ): Promise<FieldBossCycle[]> {
+export async function listCycles(server: string, updateCallback:(boss: FieldBossCycle) => void ): Promise<FieldBossCycle[]> {
     const collection = await firestore.collection(`${COLLECTION_ID}/${server}/cycles/`)
                             .get();
 
@@ -96,8 +60,9 @@ export async function listCycles(server: string, updateCallback:(FieldBossCycle)
     return ret;
 }
 
-function docToBoss(doc): FieldBossCycle {
-    const ret = doc.data();
+type DocumentSnapshot = funcs.firestore.DocumentSnapshot;
+function docToBoss(doc: DocumentSnapshot): FieldBossCycle {
+    const ret = doc.data() as FieldBossCycle;
     ret.serverId = doc.id;
     return ret;
 }
@@ -111,11 +76,11 @@ export function saveViewOption(viewOption: object) {
 
 interface ViewOptionResult {
     exists: boolean;
-    result: object;
+    result: object | null;
 }
-export function getViewOption(): ViewOptionResult {
+export function getViewOption(): ViewOptionResult | null {
     if (!window.localStorage) {
-        return;
+        return null;
     }
     const result = window.localStorage.getItem("viewOption");
     if (result) {
@@ -135,16 +100,11 @@ export function getViewOption(): ViewOptionResult {
  * Notification.
  ***************************************************/
 export async function registerNotification(): Promise<string> {
-    try {
-        const messaging = firebase.messaging();
-        const token = await messaging.getToken()
-        console.log(token)
-        // TODO このtokenは通知先の限定に使う.
-        messaging.onMessage((payload) => {
-            console.log(payload)
-        })
-        return token
-    } catch (err) {
-        console.info(err)
-    }
+    const messaging = funcs.messaging();
+    // TODO このtokenは通知先の限定に使うため、サーバ側で保存が必要.
+    const token = await messaging.getToken()
+    messaging.onMessage((payload) => {
+        console.log(payload)
+    })
+    return token
 }
