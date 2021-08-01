@@ -109,7 +109,6 @@ export async function registerNotification(
         // TODO 画面で受け取る
         console.log(payload)
     })
-    console.log(userNotification) 
     return userNotification
 }
 interface UserNotification {

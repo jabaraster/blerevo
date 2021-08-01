@@ -7,7 +7,6 @@ import firebaseui from "firebaseui-ja";
 let authStateChangedHandler = (user: any) => {}
 let loginUser: any;
 firebase.auth().onAuthStateChanged((user) => {
-    console.log('onAuthStateChanged: ', user)
     if (authStateChangedHandler) {
         authStateChangedHandler(user)
     }

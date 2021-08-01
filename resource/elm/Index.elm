@@ -9,6 +9,7 @@ import Html.Events exposing (..)
 import Json.Decode
 import Json.Encode exposing (Value)
 import List.Extra
+import Maybe.Extra
 import Ports
 import Set exposing (Set)
 import Task
@@ -56,7 +57,7 @@ type alias Model =
     , editCustomFilter : Maybe (Set FieldBossId)
     , showAuthDialog : Bool
     , loginUser : Maybe HastoolUser
-    , notificationBoss : Set FieldBossId
+    , notificationBossIds : Set FieldBossId
     }
 
 
@@ -117,7 +118,7 @@ init _ url key =
       , editCustomFilter = Nothing
       , showAuthDialog = False
       , loginUser = Nothing
-      , notificationBoss = Set.empty
+      , notificationBossIds = Set.empty
       }
     , Cmd.batch
         [ Task.perform GetZone Time.here
@@ -470,7 +471,7 @@ update msg model =
                     ( { model | error = Just e }, Cmd.none )
 
                 Ok notif ->
-                    ( { model | notificationBoss = notif.notificationBossIds }, Cmd.none )
+                    ( { model | notificationBossIds = notif.notificationBossIds }, Cmd.none )
 
         Logout ->
             ( { model | loginUser = Nothing, showAuthDialog = False }, Ports.requestLogout () )
@@ -730,7 +731,7 @@ view model =
                         , td [ class "label-now" ] [ text <| Times.omitSecond <| Times.addHour 1 <| zonedNow model ]
                         ]
                     ]
-                , tbody [] <| List.map (viewBossTimeline (zonedNow model) model.loginUser) ordered
+                , tbody [] <| List.map (viewBossTimeline (zonedNow model) model.loginUser model.notificationBossIds) ordered
                 ]
             , footer []
                 [ h5 [] [ text "Powered by Haskell at ケヤキ server" ]
@@ -898,8 +899,8 @@ circle th =
     div [ class <| "circle-" ++ th ++ "-container" ] [ div [ class <| "circle-" ++ th ] [] ]
 
 
-viewBossTimeline : ZonedTime -> Maybe HastoolUser -> FieldBossCycle -> Html Msg
-viewBossTimeline now mLoginUser boss =
+viewBossTimeline : ZonedTime -> Maybe HastoolUser -> Set FieldBossId -> FieldBossCycle -> Html Msg
+viewBossTimeline now mLoginUser notificationBossIds boss =
     let
         nextPopTime =
             Types.nextPopTime boss now.time
@@ -950,9 +951,24 @@ viewBossTimeline now mLoginUser boss =
                 ]
                 [ span
                     [ class "notification-switcher"
-                    , class <| Maybe.withDefault "fas fa-bell-slash" <| Maybe.map (identity "fas fa-bell") mLoginUser
-                    , class <| Maybe.withDefault "unnotification" <| Maybe.map (identity "notification") mLoginUser
-                    , class <| Maybe.withDefault "hidden" <| Maybe.map (identity "") mLoginUser
+                    , class <|
+                        if Set.member boss.id notificationBossIds then
+                            "notification"
+
+                        else
+                            "unnotification"
+                    , class <|
+                        if Set.member boss.id notificationBossIds then
+                            "fas fa-bell"
+
+                        else
+                            "fas fa-bell-slash"
+                    , class <|
+                        if Maybe.Extra.isJust mLoginUser then
+                            ""
+
+                        else
+                            "hidden"
                     , onClick <| SwitchNotification boss
                     ]
                     []
