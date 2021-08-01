@@ -1,13 +1,13 @@
-import * as _ from "../less/style.less";
-import { Elm } from "../elm/Index.elm";
-import * as funcs from "../ts/funcs";
-import * as auth from "../ts/auth";
+import  '../less/style.less'
+import { Elm } from '../elm/Index.elm'
+import * as funcs from '../ts/funcs'
+import * as auth from '../ts/auth'
 
 var app = Elm.Index.init();
 var ports = app.ports;
 
 ports.requestSelectReportText.subscribe(_ => {
-  const e = document.getElementById("report-text-input")
+  const e = document.getElementById('report-text-input')
   if (e) e.select();
 });
 
@@ -50,7 +50,6 @@ ports.requestGetViewOption.subscribe(_ => {
     ports.receiveViewOption.send(ret.result);
   }
 });
-
-ports.requestRegisterNotification.subscribe(() => {
-  funcs.registerNotification()
+ports.requestRegisterNotification.subscribe((d) => {
+  funcs.registerNotification(d)
 })

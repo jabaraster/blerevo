@@ -99,12 +99,41 @@ export function getViewOption(): ViewOptionResult | null {
 /***************************************************
  * Notification.
  ***************************************************/
-export async function registerNotification(): Promise<string> {
+export async function registerNotification(
+    { server, uid }: { server: string, uid: string }
+): Promise<UserNotification> {
     const messaging = funcs.messaging();
-    // TODO このtokenは通知先の限定に使うため、サーバ側で保存が必要.
     const token = await messaging.getToken()
+    const userNotification = await registerNotificationToken({ server, uid, token})
     messaging.onMessage((payload) => {
+        // TODO 画面で受け取る
         console.log(payload)
     })
-    return token
+    console.log(userNotification) 
+    return userNotification
+}
+interface UserNotification {
+    uid: string;
+    notificationToken: string;
+    notificationBossIds: string[];
+}
+export async function registerNotificationToken(
+        { server, uid, token }: { server: string, uid: string, token: string }
+        ): Promise<UserNotification> {
+    const userNotifDocRef = firestore.doc(`${COLLECTION_ID}/${server}/personalizedNotification/${uid}`)
+    const userNotifDoc = await userNotifDocRef.get()
+    if (userNotifDoc.exists) {
+        userNotifDocRef.update({
+            notificationToken: token
+        })
+        return userNotifDoc.data() as UserNotification
+    } else {
+        const newUserNotif: UserNotification = {
+            uid,
+            notificationToken: token,
+            notificationBossIds: []
+        }
+        userNotifDocRef.set(newUserNotif)
+        return newUserNotif
+    }
 }

@@ -56,6 +56,7 @@ type alias Model =
     , editCustomFilter : Maybe (Set FieldBossId)
     , showAuthDialog : Bool
     , loginUser : Maybe HastoolUser
+    , notificationBoss : Set FieldBossId
     }
 
 
@@ -83,11 +84,11 @@ type Msg
     | SelectReportText
     | ReceiveViewOption Value
     | ReceiveAuthStateChanged Value
+    | ReceiveRegisterNotication Value
     | ShowCustomFilterEditor
     | SaveCustomFilter
     | ShowAuthDialog
     | Logout
-    | RequestRegisterNotification
     | SwitchNotification FieldBossCycle
 
 
@@ -116,6 +117,7 @@ init _ url key =
       , editCustomFilter = Nothing
       , showAuthDialog = False
       , loginUser = Nothing
+      , notificationBoss = Set.empty
       }
     , Cmd.batch
         [ Task.perform GetZone Time.here
@@ -140,6 +142,7 @@ subscriptions _ =
         , Ports.receiveUpdate ReceiveUpdate
         , Ports.receiveViewOption ReceiveViewOption
         , Ports.receiveAuthStateChanged ReceiveAuthStateChanged
+        , Ports.receiveRegisterNotification ReceiveRegisterNotication
         ]
 
 
@@ -453,17 +456,27 @@ update msg model =
                 Err e ->
                     ( { model | error = Just e }, Cmd.none )
 
-                Ok hastoolUser ->
-                    ( { model | loginUser = Just hastoolUser }, Cmd.none )
+                Ok user ->
+                    ( { model | loginUser = Just user }
+                    , Ports.requestRegisterNotification
+                        { server = pageToServer model.page
+                        , uid = user.uid
+                        }
+                    )
+
+        ReceiveRegisterNotication v ->
+            case Json.Decode.decodeValue Types.userNotificationDecoder v of
+                Err e ->
+                    ( { model | error = Just e }, Cmd.none )
+
+                Ok notif ->
+                    ( { model | notificationBoss = notif.notificationBossIds }, Cmd.none )
 
         Logout ->
             ( { model | loginUser = Nothing, showAuthDialog = False }, Ports.requestLogout () )
 
-        RequestRegisterNotification ->
-            ( model, Ports.requestRegisterNotification () )
-
         SwitchNotification _ ->
-            ( model, Debug.todo "not implemented.")
+            ( model, Cmd.none )
 
 
 getReliability : FieldBossCycle -> String -> Bool
@@ -935,7 +948,7 @@ viewBossTimeline now mLoginUser boss =
                 , style "width" <| timeBarWidth repop now.time
                 , onClick <| ShowReportText boss repop
                 ]
-                [span
+                [ span
                     [ class "notification-switcher"
                     , class <| Maybe.withDefault "fas fa-bell-slash" <| Maybe.map (identity "fas fa-bell") mLoginUser
                     , class <| Maybe.withDefault "unnotification" <| Maybe.map (identity "notification") mLoginUser

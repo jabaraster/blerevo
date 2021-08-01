@@ -1,7 +1,8 @@
-module Types exposing (Area, FieldBossCycle, FieldBossId, HastoolUser, PopTime, Region, SortPolicy(..), Timestamp, ToggleState, ViewOption, fieldBossCycleDecoder, hastoolUserDecoder, nextPopTime, nextPopTimeInternal, nextPopTimePlain, posixToTimestamp, sortPolicyToString, stringToSortPolicy, timestampDecoder, timestampToPosix, toggleStateDecoder, viewOptionDecoder)
+module Types exposing (Area, FieldBossCycle, FieldBossId, HastoolUser, PopTime, Region, SortPolicy(..), Timestamp, ToggleState, UserNotification, ViewOption, fieldBossCycleDecoder, hastoolUserDecoder, nextPopTime, nextPopTimeInternal, nextPopTimePlain, posixToTimestamp, sortPolicyToString, stringToSortPolicy, timestampDecoder, timestampToPosix, toggleStateDecoder, userNotificationDecoder, viewOptionDecoder)
 
 import Json.Decode as D exposing (Decoder)
 import Json.Decode.Pipeline as DP
+import Set exposing (Set)
 import Time exposing (Posix)
 
 
@@ -204,19 +205,22 @@ type alias HastoolUser =
     }
 
 
-type alias AuthProvider =
-    { providerId : String
-    }
-
-
-authProviderDecoder : Decoder AuthProvider
-authProviderDecoder =
-    D.map AuthProvider
-        (D.field "providerId" D.string)
-
-
 hastoolUserDecoder : Decoder HastoolUser
 hastoolUserDecoder =
     D.map2 HastoolUser
         (D.field "uid" D.string)
         (D.field "displayName" D.string)
+
+
+type alias UserNotification =
+    { notificationBossIds : Set FieldBossId
+    }
+
+
+userNotificationDecoder : Decoder UserNotification
+userNotificationDecoder =
+    D.map UserNotification
+        (D.andThen
+            (\l -> D.succeed <| Set.fromList l)
+            (D.field "notificationBossIds" <| D.list D.string)
+        )
