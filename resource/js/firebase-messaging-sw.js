@@ -23,5 +23,6 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-    console.log('[firebase-messaging-sw.js] Received background message ', payload);
+    console.log('onBackgroundMessage:', payload)
+    // TODO 画面に反映
 });

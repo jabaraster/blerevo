@@ -1,4 +1,4 @@
-port module Ports exposing (receiveAuthStateChanged, receiveCycles, receiveLogout, receiveRegisterNotification, receiveUpdate, receiveViewOption, requestGetViewOption, requestLoadCycles, requestLogout, requestRegisterNotification, requestSaveViewOption, requestSelectReportText, requestUpdateDefeatedTime)
+port module Ports exposing (receiveAuthStateChanged, receiveCycles, receiveLogout, receiveRegisterNotification, receiveUpdate, receiveViewOption, requestGetViewOption, requestLoadCycles, requestLogout, requestRegisterNotification, requestSaveViewOption, requestSelectReportText, requestSwitchNotification, requestUpdateDefeatedTime)
 
 import Json.Encode exposing (Value)
 import Types exposing (..)
@@ -41,3 +41,6 @@ port requestRegisterNotification : { server : String, uid : String } -> Cmd msg
 
 
 port receiveRegisterNotification : (Value -> msg) -> Sub msg
+
+
+port requestSwitchNotification : { server : String, uid : String, bossId : FieldBossId } -> Cmd msg

@@ -33,7 +33,7 @@ ports.requestLogout.subscribe(() => {
 
 ports.requestUpdateDefeatedTime.subscribe(({ server, bossIdAtServer, time, reliability }) => {
   funcs.updateDefeatedTime(server, bossIdAtServer, time, reliability)
-    .then(res => {
+    .then((res) => {
       // 処理なし
     })
     .catch(err => {
@@ -52,4 +52,13 @@ ports.requestGetViewOption.subscribe(_ => {
 });
 ports.requestRegisterNotification.subscribe((d) => {
   funcs.registerNotification(d)
+    .then((res) => {
+      ports.receiveRegisterNotification.send(res)
+    })
+    .catch(err => {
+      console.log(err);
+    });
+})
+ports.requestSwitchNotification.subscribe((d) => {
+  funcs.switchBossNotification(d)
 })

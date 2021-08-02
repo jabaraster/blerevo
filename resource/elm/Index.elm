@@ -476,8 +476,30 @@ update msg model =
         Logout ->
             ( { model | loginUser = Nothing, showAuthDialog = False }, Ports.requestLogout () )
 
-        SwitchNotification _ ->
-            ( model, Cmd.none )
+        SwitchNotification boss ->
+            let
+                newBossIds =
+                    if Set.member boss.id model.notificationBossIds then
+                        Set.remove boss.id model.notificationBossIds
+
+                    else
+                        Set.insert boss.id model.notificationBossIds
+
+                newModel =
+                    { model | notificationBossIds = newBossIds }
+            in
+            case model.loginUser of
+                Nothing ->
+                    ( newModel, Cmd.none )
+
+                Just user ->
+                    ( newModel
+                    , Ports.requestSwitchNotification
+                        { server = pageToServer model.page
+                        , uid = user.uid
+                        , bossId = boss.id
+                        }
+                    )
 
 
 getReliability : FieldBossCycle -> String -> Bool
@@ -969,18 +991,20 @@ viewBossTimeline now mLoginUser notificationBossIds boss =
 
                         else
                             "hidden"
-                    , onClick <| SwitchNotification boss
+                    , custom
+                        "click"
+                        (Json.Decode.succeed
+                            { message = SwitchNotification boss
+                            , stopPropagation = True
+                            , preventDefault = True
+                            }
+                        )
                     ]
                     []
                 , text <| "登場まで" ++ remainTimeText repop.remainSeconds
                 ]
             ]
         ]
-
-
-identity : a -> b -> a
-identity v _ =
-    v
 
 
 timeBarColorClass : Int -> String

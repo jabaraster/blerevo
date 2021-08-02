@@ -1,4 +1,4 @@
-import funcs from "firebase";
+import firebase from "firebase";
 
 const COLLECTION_ID = "field-boss-cycle-2";
 
@@ -19,7 +19,7 @@ interface FieldBossCycle {
     sortOrder: number;
 }
 
-funcs.initializeApp({
+firebase.initializeApp({
     apiKey: "AIzaSyA8OgTiooOW4F97YTBVw5PuaR1p9oo4R9g",
     authDomain: "blade-and-soul-field-bos-c21bf.firebaseapp.com",
     databaseURL: "https://blade-and-soul-field-bos-c21bf.firebaseio.com",
@@ -33,7 +33,7 @@ funcs.initializeApp({
 /***************************************************
  * Datastore.
  ***************************************************/
-const firestore = funcs.firestore();
+const firestore = firebase.firestore();
 export async function updateDefeatedTime(server: string, bossIdAtServer: string, time: Timestamp, reliability: boolean): Promise<void> {
     const doc = await firestore.doc(`${COLLECTION_ID}/${server}/cycles/${bossIdAtServer}`)
     await doc.update({
@@ -60,7 +60,7 @@ export async function listCycles(server: string, updateCallback:(boss: FieldBoss
     return ret;
 }
 
-type DocumentSnapshot = funcs.firestore.DocumentSnapshot;
+type DocumentSnapshot = firebase.firestore.DocumentSnapshot;
 function docToBoss(doc: DocumentSnapshot): FieldBossCycle {
     const ret = doc.data() as FieldBossCycle;
     ret.serverId = doc.id;
@@ -102,12 +102,12 @@ export function getViewOption(): ViewOptionResult | null {
 export async function registerNotification(
     { server, uid }: { server: string, uid: string }
 ): Promise<UserNotification> {
-    const messaging = funcs.messaging();
+    const messaging = firebase.messaging();
     const token = await messaging.getToken()
     const userNotification = await registerNotificationToken({ server, uid, token})
     messaging.onMessage((payload) => {
-        // TODO 画面で受け取る
-        console.log(payload)
+        console.log('onMessage:', payload)
+        // TODO 画面に反映
     })
     return userNotification
 }
@@ -116,13 +116,17 @@ interface UserNotification {
     notificationToken: string;
     notificationBossIds: string[];
 }
+function getUserNotificationDocRef({ server, uid }: { server: string, uid: string): firebase.firestore.DocumentReference {
+    return firestore.doc(`${COLLECTION_ID}/${server}/personalizedNotification/${uid}`)
+}
 export async function registerNotificationToken(
         { server, uid, token }: { server: string, uid: string, token: string }
         ): Promise<UserNotification> {
-    const userNotifDocRef = firestore.doc(`${COLLECTION_ID}/${server}/personalizedNotification/${uid}`)
+    // TODO Firefoxの場合、ユーザ操作のないイベントから通知に関するAPIを呼ぶとエラーとなる.
+    const userNotifDocRef = getUserNotificationDocRef({ server, uid })
     const userNotifDoc = await userNotifDocRef.get()
     if (userNotifDoc.exists) {
-        userNotifDocRef.update({
+        await userNotifDocRef.update({
             notificationToken: token
         })
         return userNotifDoc.data() as UserNotification
@@ -132,7 +136,25 @@ export async function registerNotificationToken(
             notificationToken: token,
             notificationBossIds: []
         }
-        userNotifDocRef.set(newUserNotif)
+        await userNotifDocRef.set(newUserNotif)
         return newUserNotif
     }
+}
+export async function switchBossNotification(
+        { server, uid, bossId }: { server: string, uid: string, bossId: string }
+        ) {
+    // TODO Firefoxの場合、ユーザ操作のないイベントから通知に関するAPIを呼ぶとエラーとなる.
+    const userNotifDocRef = getUserNotificationDocRef({ server, uid })
+    const userNotifDoc = await userNotifDocRef.get()
+    const userNotif = userNotifDoc.data() as UserNotification
+    const bossIds = userNotif.notificationBossIds
+    const idx = bossIds.indexOf(bossId)
+    if (idx < 0) {
+        bossIds.push(bossId)
+    } else {
+        bossIds.splice(idx, 1)
+    }
+    await userNotifDocRef.update({
+        notificationBossIds: bossIds
+    })
 }
