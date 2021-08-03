@@ -19,16 +19,21 @@ ports.requestLoadCycles.subscribe((server) => {
     .then(res => {
       ports.receiveCycles.send(res);
     })
-    .catch(err => {
-      console.log(err);
-    });
+    .catch(console.error);
 });
 
 auth.onAuthStateChanged((user) => {
   ports.receiveAuthStateChanged.send(user)
 })
-ports.requestLogout.subscribe(() => {
+ports.requestLogout.subscribe((d) => {
   auth.logout()
+    .then(() => {
+      return funcs.setUserNotifiable({ server: d.server, uid: d.uid, notifiable: false })
+    })
+    .then(() => {
+      ports.receiveLogout.send(null) // send関数は引数を何も与えないとエラーになる
+    })
+    .catch(console.error);
 })
 
 ports.requestUpdateDefeatedTime.subscribe(({ server, bossIdAtServer, time, reliability }) => {
@@ -36,9 +41,7 @@ ports.requestUpdateDefeatedTime.subscribe(({ server, bossIdAtServer, time, relia
     .then((res) => {
       // 処理なし
     })
-    .catch(err => {
-      console.log(err);
-    });
+    .catch(console.error);
 });
 
 ports.requestSaveViewOption.subscribe((viewOption) => {
@@ -55,9 +58,7 @@ ports.requestRegisterNotification.subscribe((d) => {
     .then((res) => {
       ports.receiveRegisterNotification.send(res)
     })
-    .catch(err => {
-      console.log(err);
-    });
+    .catch(console.error);
 })
 ports.requestSwitchNotification.subscribe((d) => {
   funcs.switchBossNotification(d)

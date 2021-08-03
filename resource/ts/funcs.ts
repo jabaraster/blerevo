@@ -114,6 +114,7 @@ export async function registerNotification(
 interface UserNotification {
     uid: string;
     notificationToken: string;
+    notifiable: boolean;
     notificationBossIds: string[];
 }
 function getUserNotificationDocRef({ server, uid }: { server: string, uid: string): firebase.firestore.DocumentReference {
@@ -127,14 +128,16 @@ export async function registerNotificationToken(
     const userNotifDoc = await userNotifDocRef.get()
     if (userNotifDoc.exists) {
         await userNotifDocRef.update({
-            notificationToken: token
+            notificationToken: token,
+            notifiable: true,
         })
         return userNotifDoc.data() as UserNotification
     } else {
         const newUserNotif: UserNotification = {
             uid,
             notificationToken: token,
-            notificationBossIds: []
+            notifiable: true,
+            notificationBossIds: [],
         }
         await userNotifDocRef.set(newUserNotif)
         return newUserNotif
@@ -156,5 +159,13 @@ export async function switchBossNotification(
     }
     await userNotifDocRef.update({
         notificationBossIds: bossIds
+    })
+}
+export async function setUserNotifiable(
+    { server, uid, notifiable }: { server: string, uid: string, notifiable: boolean}
+    ): Promise<void> {
+    const userNotifDocRef = getUserNotificationDocRef({ server, uid })
+    await userNotifDocRef.update({
+        notifiable
     })
 }

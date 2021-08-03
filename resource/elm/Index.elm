@@ -90,6 +90,7 @@ type Msg
     | SaveCustomFilter
     | ShowAuthDialog
     | Logout
+    | ReceiveLogout ()
     | SwitchNotification FieldBossCycle
 
 
@@ -144,6 +145,7 @@ subscriptions _ =
         , Ports.receiveViewOption ReceiveViewOption
         , Ports.receiveAuthStateChanged ReceiveAuthStateChanged
         , Ports.receiveRegisterNotification ReceiveRegisterNotication
+        , Ports.receiveLogout ReceiveLogout
         ]
 
 
@@ -474,7 +476,17 @@ update msg model =
                     ( { model | notificationBossIds = notif.notificationBossIds }, Cmd.none )
 
         Logout ->
-            ( { model | loginUser = Nothing, showAuthDialog = False }, Ports.requestLogout () )
+            case model.loginUser of
+                Nothing ->
+                    ( model, Cmd.none )
+
+                Just user ->
+                    ( { model | showAuthDialog = False }
+                    , Ports.requestLogout { server = pageToServer model.page, uid = user.uid }
+                    )
+
+        ReceiveLogout _ ->
+            ( { model | loginUser = Nothing }, Nav.reloadAndSkipCache )
 
         SwitchNotification boss ->
             let
@@ -652,13 +664,26 @@ viewAuthDialog model =
             case model.loginUser of
                 Just user ->
                     [ div [ id "firebaseui-auth-container", class "hidden" ] []
+                    , div [] [ span [] [ text <| user.displayName ++ "にてログイン中" ] ]
+                    , hr [] []
                     , button [ class "btn btn-sm btn-success", onClick Logout ] [ text "ログアウト" ]
-                    , span [] [ text user.displayName ]
-                    , span [] [ text user.uid ]
                     ]
 
                 Nothing ->
-                    [ div [ id "firebaseui-auth-container" ] [] ]
+                    [ div [ class "description" ]
+                        [ span []
+                            [ text "通知を受けるフィルボを選ぶために"
+                            , ul [ class "list" ]
+                                [ li [] [ text "WebブラウザはGoogle Chromeを使っていただくこと" ]
+                                , li [] [ text "GoogleあるいはTwitterアカウントでログインしていただくこと" ]
+                                ]
+                            , span [] [ text "が必要です！ご了承下さい。" ]
+                            ]
+                        ]
+                    , hr [] []
+                    , div [ id "firebaseui-auth-container" ] []
+                    , div [ class "description" ] [ text "Twitterボタンの文字が見にくいのは謎です、すみません！調査中です。" ]
+                    ]
     in
     div
         [ class "backdrop"
@@ -692,7 +717,10 @@ viewHeader =
             [ h1 [] [ text "HASTOOL" ]
             , h2 [] [ text "Blade and Soul Revolution Field Boss Tracker" ]
             ]
-        , button [ class "fa fa-bars main-menu-button", onClick ShowAuthDialog ] []
+        , div [ class "main-menu-button" ]
+            [ span [ class "new-release" ] [ text "new!!" ]
+            , button [ class "fa fa-bars", onClick ShowAuthDialog ] []
+            ]
         ]
 
 
@@ -1112,6 +1140,7 @@ viewUpdateHistory : Html msg
 viewUpdateHistory =
     ul [ class "update-history" ]
         [ li [ class "description" ] [ text "更新履歴" ]
+        , li [ class "description" ] [ text "2021/08/03 通知を受けたいフィルボを選べるようになりました。Chromeを使っていることと、GoogleアカウントまたはTwitterアカウントでのログインすることが条件です。またハスツールの画面がアクティブになっている場合は、通知のポップアップが出ないようです。徐々に改良していきたい。" ]
         , li [ class "description" ] [ text "2020/11/01 サクラサーバについても通知が飛ぶようにしました。" ]
         , li [ class "description" ] [ text "2020/08/21 ダイアログのボタンが押せないことがあるバグに対処しました。またカスタムフィルタを設定するときのボスに地域名を付記するようにしました。" ]
         , li [ class "description" ] [ text "2020/08/11 新しい地域(異界第1章)のフィルボを追加しました。" ]

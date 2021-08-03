@@ -42,19 +42,19 @@ const DEFAULT_SERVER = 'ケヤキ' // 歴史的経緯からケヤキのまま
 const functionBuilder = functions.region("asia-northeast1")
 
 exports.personalizedNotification = functionBuilder.pubsub.schedule('every 1 minutes').onRun(async () => {
+    await personalizedNotificationCore('ケヤキ')
     await personalizedNotificationCore('テスト')
 })
 
 exports.notification = functionBuilder.pubsub.schedule("every 1 minutes").onRun(async context => {
     await notificationCore("ケヤキ");
-    await notificationCore("サクラ");
 });
 
 export const personalizedNotificationCore = async function(server: string = DEFAULT_SERVER) {
     const CATEGORY = 'personalizedNotificated'
     const now = new Date();
     const bossList = await getNotificationBossList(server, CATEGORY, now)
-    console.log(`${bossList.length}体のボスを通知します.`)
+    console.log(`${server}サーバ: ${bossList.length}体のボスを通知します.`)
     if (bossList.length === 0) {
         return;
     }
@@ -65,6 +65,9 @@ export const personalizedNotificationCore = async function(server: string = DEFA
 
     const bossToNotificationTokens = userNotificationsDoc.docs.reduce((acum, snapshot) => {
         const userNotif = snapshot.data() as UserNotification
+        if (userNotif.notifiable === false) {
+            return acum
+        }
         userNotif.notificationBossIds.forEach((bossId) => {
             if (!acum.has(bossId)) {
                 acum.set(bossId, [])
@@ -223,6 +226,7 @@ interface ExFieldBossCycle extends FieldBossCycle {
 }
 interface UserNotification {
     notificationToken: string;
+    notifiable: boolean;
     notificationBossIds: string[];
 }
 

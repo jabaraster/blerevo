@@ -31,7 +31,7 @@ port receiveViewOption : (Value -> msg) -> Sub msg
 port receiveAuthStateChanged : (Value -> msg) -> Sub msg
 
 
-port requestLogout : () -> Cmd msg
+port requestLogout : { server : String, uid : String } -> Cmd msg
 
 
 port receiveLogout : (() -> msg) -> Sub msg
