@@ -359,6 +359,50 @@ function getBossCycleList(): FieldBossCycle[] {
            reliability: false,
            repopIntervalMinutes: 240,
            sortOrder: 260
-         }
+         },
+         {
+           area: '凍土の丘',
+           force: false,
+           id: 'kuuhuku',
+           lastDefeatedTime: { seconds: 1599258780 },
+           name: '破戒僧クウフク',
+           region: '悲劇の高原',
+           reliability: false,
+           repopIntervalMinutes: 240,
+           sortOrder: 270
+         },
+         {
+           area: '慰皇城',
+           force: false,
+           id: 'yukionna',
+           lastDefeatedTime: { seconds: 1599258780 },
+           name: '雪女',
+           region: '悲劇の高原',
+           reliability: false,
+           repopIntervalMinutes: 240,
+           sortOrder: 280
+         },
+         {
+           area: '慰皇要塞',
+           force: true,
+           id: 'fin_zauru',
+           lastDefeatedTime: { seconds: 1599258780 },
+           name: '奇襲隊長フィン・ザウル',
+           region: '悲劇の高原',
+           reliability: false,
+           repopIntervalMinutes: 240,
+           sortOrder: 290
+         },
+         {
+           area: '慰皇要塞',
+           force: true,
+           id: 'dowol',
+           lastDefeatedTime: { seconds: 1599258780 },
+           name: '奇襲隊長ドウォル',
+           region: '悲劇の高原',
+           reliability: false,
+           repopIntervalMinutes: 240,
+           sortOrder: 300
+         },
       ];
 }

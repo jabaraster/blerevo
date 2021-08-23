@@ -104,7 +104,7 @@ init _ url key =
       , page = page
       , zone = Time.utc
       , now = Time.millisToPosix 0
-      , regionFilter = Dict.fromList [ ( "大砂漠", True ), ( "水月平原", True ), ( "白青山脈", True ), ( "入れ替わるFB", True ), ( "月下渓谷(青)", True ), ( "月下渓谷(赤)", True ), ( "月下渓谷", True ) ]
+      , regionFilter = Dict.fromList [ ( "大砂漠", True ), ( "水月平原", True ), ( "白青山脈", True ), ( "入れ替わるFB", True ), ( "月下渓谷(青)", True ), ( "月下渓谷(赤)", True ), ( "月下渓谷", True ), ( "悲劇の高原", True ) ]
       , forceFilter = Dict.fromList [ ( "勢力ボス", True ), ( "非勢力ボス", True ) ]
       , reliabilityFilter = Dict.fromList [ ( "信憑性あり", True ), ( "信憑性なし", True ) ]
       , customFilterApplying = False
@@ -753,6 +753,7 @@ view model =
                     , li [] [ filterText "月下渓谷(青)" model.regionFilter ToggleRegionFilter ]
                     , li [] [ filterText "月下渓谷(赤)" model.regionFilter ToggleRegionFilter ]
                     , li [] [ filterText "月下渓谷" model.regionFilter ToggleRegionFilter ]
+                    , li [] [ filterText "悲劇の高原" model.regionFilter ToggleRegionFilter ]
                     ]
                 ]
             , div [ filterContainerClass model.customFilterApplying ]
@@ -1124,6 +1125,9 @@ colorForRegion r =
         "月下渓谷" ->
             "#003000"
 
+        "悲劇の高原" ->
+            "#808000"
+
         _ ->
             "#000000"
 
@@ -1140,6 +1144,7 @@ viewUpdateHistory : Html msg
 viewUpdateHistory =
     ul [ class "update-history" ]
         [ li [ class "description" ] [ text "更新履歴" ]
+        , li [ class "description" ] [ text "2021/08/23 新エリアのフィルボを追加しました。" ]
         , li [ class "description" ] [ text "2021/08/03 通知を受けたいフィルボを選べるようになりました。Chromeを使っていることと、GoogleアカウントまたはTwitterアカウントでのログインすることが条件です。またハスツールの画面がアクティブになっている場合は、通知のポップアップが出ないようです。徐々に改良していきたい。" ]
         , li [ class "description" ] [ text "2020/11/01 サクラサーバについても通知が飛ぶようにしました。" ]
         , li [ class "description" ] [ text "2020/08/21 ダイアログのボタンが押せないことがあるバグに対処しました。またカスタムフィルタを設定するときのボスに地域名を付記するようにしました。" ]
