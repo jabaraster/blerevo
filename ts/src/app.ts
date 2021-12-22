@@ -404,5 +404,27 @@ function getBossCycleList(): FieldBossCycle[] {
            repopIntervalMinutes: 240,
            sortOrder: 300
          },
+         {
+           area: 'ガウ城',
+           force: false,
+           id: 'munnki',
+           lastDefeatedTime: { seconds: 1599258780 },
+           name: '山王 ムンキ',
+           region: '乾軒国の直轄領',
+           reliability: false,
+           repopIntervalMinutes: 240,
+           sortOrder: 310
+         },
+         {
+           area: 'ジラン平原',
+           force: false,
+           id: 'buutara',
+           lastDefeatedTime: { seconds: 1599258780 },
+           name: '魔族軍団長 ブータラ',
+           region: '乾軒国の直轄領',
+           reliability: false,
+           repopIntervalMinutes: 240,
+           sortOrder: 320
+         },
       ];
 }

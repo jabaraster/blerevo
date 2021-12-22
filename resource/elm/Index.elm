@@ -104,7 +104,7 @@ init _ url key =
       , page = page
       , zone = Time.utc
       , now = Time.millisToPosix 0
-      , regionFilter = Dict.fromList [ ( "大砂漠", True ), ( "水月平原", True ), ( "白青山脈", True ), ( "入れ替わるFB", True ), ( "月下渓谷(青)", True ), ( "月下渓谷(赤)", True ), ( "月下渓谷", True ), ( "悲劇の高原", True ) ]
+      , regionFilter = Dict.fromList [ ( "大砂漠", True ), ( "水月平原", True ), ( "白青山脈", True ), ( "入れ替わるFB", True ), ( "月下渓谷(青)", True ), ( "月下渓谷(赤)", True ), ( "月下渓谷", True ), ( "悲劇の高原", True ), ( "乾軒国の直轄領", True ) ]
       , forceFilter = Dict.fromList [ ( "勢力ボス", True ), ( "非勢力ボス", True ) ]
       , reliabilityFilter = Dict.fromList [ ( "信憑性あり", True ), ( "信憑性なし", True ) ]
       , customFilterApplying = False
@@ -754,6 +754,7 @@ view model =
                     , li [] [ filterText "月下渓谷(赤)" model.regionFilter ToggleRegionFilter ]
                     , li [] [ filterText "月下渓谷" model.regionFilter ToggleRegionFilter ]
                     , li [] [ filterText "悲劇の高原" model.regionFilter ToggleRegionFilter ]
+                    , li [] [ filterText "乾軒国の直轄領" model.regionFilter ToggleRegionFilter ]
                     ]
                 ]
             , div [ filterContainerClass model.customFilterApplying ]
@@ -785,7 +786,7 @@ view model =
                 , tbody [] <| List.map (viewBossTimeline (zonedNow model) model.loginUser model.notificationBossIds) ordered
                 ]
             , footer []
-                [ h5 [] [ text "Powered by Haskell at ケヤキ server" ]
+                [ h5 [] [ text "Powered by Haskell" ]
                 , p [ class "description" ] [ text "ご要望・ご意見はささ下さい" ]
                 , p [] [ text <| Maybe.withDefault "" <| Maybe.map Json.Decode.errorToString model.error ]
                 , viewUpdateHistory
@@ -1128,6 +1129,9 @@ colorForRegion r =
         "悲劇の高原" ->
             "#808000"
 
+        "乾軒国の直轄領" ->
+            "#ff6347"
+
         _ ->
             "#000000"
 
@@ -1144,12 +1148,14 @@ viewUpdateHistory : Html msg
 viewUpdateHistory =
     ul [ class "update-history" ]
         [ li [ class "description" ] [ text "更新履歴" ]
+        , li [ class "description" ] [ text "2021/12/22 魔族軍団長ブータラを追加しました。" ]
+        , li [ class "description" ] [ text "2021/08/23 新エリア(乾軒国の直轄領)のフィルボを追加しました。" ]
         , li [ class "description" ] [ text "2021/08/23 新エリアのフィルボを追加しました。" ]
         , li [ class "description" ] [ text "2021/08/03 通知を受けたいフィルボを選べるようになりました。Chromeを使っていることと、GoogleアカウントまたはTwitterアカウントでのログインすることが条件です。またハスツールの画面がアクティブになっている場合は、通知のポップアップが出ないようです。徐々に改良していきたい。" ]
         , li [ class "description" ] [ text "2020/11/01 サクラサーバについても通知が飛ぶようにしました。" ]
         , li [ class "description" ] [ text "2020/08/21 ダイアログのボタンが押せないことがあるバグに対処しました。またカスタムフィルタを設定するときのボスに地域名を付記するようにしました。" ]
         , li [ class "description" ] [ text "2020/08/11 新しい地域(異界第1章)のフィルボを追加しました。" ]
-        , li [ class "description" ] [ text "2020/05/12 新しい地域のフィルボを追加しました。" ]
+        , li [ class "description" ] [ text "2020/05/12 新しい地域(悲劇の高原)のフィルボを追加しました。" ]
         , li [ class "description" ] [ text "2020/05/05 フィルボの登場が迫ると通知する機能を再提供します！通知にはPush7というサービスを使っていて、スマホにはPush7アプリのインストールが必要です。通知を受け取りたい方はページ一番下のボタンをタップして設定をお願いします。" ]
         , li [ class "description" ] [ text "2020/04/18 自分の追いたいフィルボのみ表示する機能(カスタムフィルタ)を追加しました" ]
         , li [ class "description" ] [ text "2020/04/05 試験的に、信憑性を表示するようにしました。登場予想が大きくずれていないと思われるフィルボは背景が赤になります。より詳しく説明すれば「1. どなたがが前回討伐時刻を報告した」「2. どなたがが残り何分で登場するかを明確に報告した」の２つの場合に、信憑性ありと判断されます。討伐予想時刻を過ぎたら、信憑性なしになります。" ]
