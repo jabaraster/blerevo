@@ -104,7 +104,18 @@ init _ url key =
       , page = page
       , zone = Time.utc
       , now = Time.millisToPosix 0
-      , regionFilter = Dict.fromList [ ( "大砂漠", True ), ( "水月平原", True ), ( "白青山脈", True ), ( "入れ替わるFB", True ), ( "月下渓谷(青)", True ), ( "月下渓谷(赤)", True ), ( "月下渓谷", True ), ( "悲劇の高原", True ), ( "乾軒国の直轄領", True ) ]
+      , regionFilter = Dict.fromList [
+                ( "大砂漠", True )
+                , ( "水月平原", True )
+                , ( "白青山脈", True )
+                , ( "入れ替わるFB", True )
+                , ( "月下渓谷(青)", True )
+                , ( "月下渓谷(赤)", True )
+                , ( "月下渓谷", True )
+                , ( "悲劇の高原", True )
+                , ( "乾軒国の直轄領", True )
+                , ( "救援の荒野", True )
+                ]
       , forceFilter = Dict.fromList [ ( "勢力ボス", True ), ( "非勢力ボス", True ) ]
       , reliabilityFilter = Dict.fromList [ ( "信憑性あり", True ), ( "信憑性なし", True ) ]
       , customFilterApplying = False
@@ -755,6 +766,7 @@ view model =
                     , li [] [ filterText "月下渓谷" model.regionFilter ToggleRegionFilter ]
                     , li [] [ filterText "悲劇の高原" model.regionFilter ToggleRegionFilter ]
                     , li [] [ filterText "乾軒国の直轄領" model.regionFilter ToggleRegionFilter ]
+                    , li [] [ filterText "救援の荒野" model.regionFilter ToggleRegionFilter ]
                     ]
                 ]
             , div [ filterContainerClass model.customFilterApplying ]
@@ -1132,6 +1144,9 @@ colorForRegion r =
         "乾軒国の直轄領" ->
             "#ff6347"
 
+        "救援の荒野" ->
+            "#522886"
+
         _ ->
             "#000000"
 
@@ -1148,6 +1163,7 @@ viewUpdateHistory : Html msg
 viewUpdateHistory =
     ul [ class "update-history" ]
         [ li [ class "description" ] [ text "更新履歴" ]
+        , li [ class "description" ] [ text "2022/07/17 荒野の魔女チョヒーを追加しました。" ]
         , li [ class "description" ] [ text "2021/12/22 魔族軍団長ブータラを追加しました。" ]
         , li [ class "description" ] [ text "2021/08/23 新エリア(乾軒国の直轄領)のフィルボを追加しました。" ]
         , li [ class "description" ] [ text "2021/08/23 新エリアのフィルボを追加しました。" ]
